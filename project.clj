@@ -8,8 +8,8 @@
   :dependencies []
   :profiles {:dev {:dependencies [[org.clojure/clojure "1.6.0"]
                                   [collection-check "0.1.3"]
-                                  [primitive-math "0.1.3"]
                                   [criterium "0.4.3"]]}}
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
-  :jvm-opts ^:replace ["-server"])
+  :jvm-opts ^:replace ["-server"]
+  :global-vars {*warn-on-reflection* true})
