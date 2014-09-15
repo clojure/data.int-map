@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>data.int-map</artifactId>
+  <version>0.1.1-SNAPSHOT</version>
+  <name>data.int-map</name>
+  <description>A map optimized for integer keys</description>
+
+  <licenses>
+    <license>
+      <name>Eclipse Public License 1.0</name>
+      <url>http://opensource.org/licenses/eclipse-1.0.php</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <parent>
+    <groupId>org.clojure</groupId>
+    <artifactId>pom.contrib</artifactId>
+    <version>0.1.2</version>
+  </parent>
+
+  <developers>
+    <developer>
+      <name>Zach Tellman</name>
+      <url>https://github.com/ztellman</url>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git://github.com/clojure/data.int-map.git</connection>
+    <developerConnection>scm:git:git://github.com/clojure/data.int-map.git</developerConnection>
+    <url>https://github.com/clojure/data.int-map</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <properties>
+    <clojure.version>1.6.0</clojure.version>
+    <clojure.warnOnReflection>true</clojure.warnOnReflection>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>com.theoryinpractise</groupId>
+        <artifactId>clojure-maven-plugin</artifactId>
+        <version>1.3.13</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <id>clojure-compile</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <warnOnReflection>true</warnOnReflection>
+              <temporaryOutputDirectory>true</temporaryOutputDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <id>clojure-test</id>
+            <phase>test</phase>
+            <goals>
+               <goal>test</goal>
+            </goals>
+            <configuration>
+              <warnOnReflection>true</warnOnReflection>
+	      <temporaryOutputDirectory>true</temporaryOutputDirectory>
+	      <testNamespaces>
+                <namespace>!clojure.data.benchmark</namespace>
+	      </testNamespaces>
+            </configuration>
+          </execution>
+        </executions>
+        <configuration>
+          <warnOnReflection>true</warnOnReflection>
+          <temporaryOutputDirectory>true</temporaryOutputDirectory>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.codehaus.jsr166-mirror</groupId>
+      <artifactId>jsr166y</artifactId>
+      <version>1.7.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>collection-check</groupId>
+      <artifactId>collection-check</artifactId>
+      <version>0.1.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>criterium</groupId>
+      <artifactId>criterium</artifactId>
+      <version>0.4.3</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <id>clojars</id>
+      <url>https://clojars.org/repo/</url>
+      <releases>
+         <enabled>true</enabled>
+      </releases>
+    </repository>
+  </repositories>
+
+</project>
