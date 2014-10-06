@@ -84,7 +84,7 @@ Both of these are significantly smaller than the standard set, but the dense int
 (into (dense-int=set) s)   ; ~670mb
 ```
 
-In this case, the dense int-set is much less efficient than the standard set, while the normal ins-set is equivalently large.  So as a rule of thumb, use `dense-int-set` where the elements are densely clustered (each element has multiple elements within +/- 1000), and `int-set` for everything else.
+In this case, the dense int-set is much less efficient than the standard set, while the normal int-set is equivalently large.  So as a rule of thumb, use `dense-int-set` where the elements are densely clustered (each element has multiple elements within +/- 1000), and `int-set` for everything else.
 
 ## Developer information
 
