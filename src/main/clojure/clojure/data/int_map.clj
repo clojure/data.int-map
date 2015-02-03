@@ -3,17 +3,17 @@
           which can be found at http://ittc.ku.edu/~andygill/papers/IntMap98.pdf"}
   clojure.data.int-map
   (:refer-clojure
-    :exclude [merge merge-with])
+    :exclude [merge merge-with update])
   (:require
-    [clojure.core.reducers :as r]
-    [clojure.data.int-map.nodes :as n])
+    [clojure.core.reducers :as r])
   (:import
     [java.util
      BitSet]
-    [clojure.data.int_map.nodes
+    [clojure.data.int_map
      INode
-     Empty]))
+     Nodes$Empty]))
 
+(set! *warn-on-reflection* true)
 (set! *unchecked-math* true)
 
 ;;;
@@ -73,7 +73,9 @@
 
   clojure.lang.Seqable
   (seq [this]
-    (seq (.entries root (java.util.ArrayList.))))
+    (let [acc (java.util.ArrayList.)]
+      (.entries root acc)
+      (seq acc)))
 
   r/CollFold
 
@@ -84,14 +86,14 @@
 
   (coll-reduce
     [this f]
-    (let [x (reduce f root)]
+    (let [x (.reduce root f (f))]
       (if (reduced? x)
         @x
         x)))
 
   (coll-reduce
     [this f val]
-    (let [x (reduce f val root)]
+    (let [x (.reduce root f val)]
       (if (reduced? x)
         @x
         x)))
@@ -145,7 +147,7 @@
         meta)))
 
   (empty [this]
-    (PersistentIntMap. (Empty.) 0 nil))
+    (PersistentIntMap. (Nodes$Empty.) 0 nil))
 
   clojure.lang.IEditableCollection
   (asTransient [this]
@@ -186,9 +188,7 @@
     (let [k (long k)
           epoch' (inc epoch)]
       (PersistentIntMap.
-        (or
-          (.dissoc root k epoch')
-          (Empty.))
+        (.dissoc root k epoch')
         epoch'
         meta)))
 
@@ -230,7 +230,9 @@
 
   clojure.lang.Seqable
   (seq [this]
-    (seq (.entries root (java.util.ArrayList.))))
+    (let [acc (java.util.ArrayList.)]
+      (.entries root acc)
+      (seq acc)))
 
   Object
   (hashCode [this]
@@ -305,7 +307,7 @@
 (defn int-map
   "Creates an integer map that can only have non-negative integers as keys."
   ([]
-     (PersistentIntMap. (Empty.) 0 nil))
+     (PersistentIntMap. (Nodes$Empty.) 0 nil))
   ([a b]
      (assoc (int-map) a b))
   ([a b & rest]

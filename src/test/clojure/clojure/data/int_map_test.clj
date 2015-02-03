@@ -6,9 +6,9 @@
     [clojure.core.reducers :as r]
     [clojure.data.int-map :as i]
     [collection-check :as check]
-    [simple-check.generators :as gen]
-    [simple-check.properties :as prop]
-    [simple-check.clojure-test :as ct :refer (defspec)])
+    [clojure.test.check.generators :as gen]
+    [clojure.test.check.properties :as prop]
+    [clojure.test.check.clojure-test :as ct :refer (defspec)])
   (:import
     [java.util
      BitSet]))
@@ -28,10 +28,10 @@
     (gen/list (gen/tuple gen/pos-int gen/int))))
 
 (defspec equivalent-update 1e3
-    (let [f #(if % (inc %) 1)]
-      (prop/for-all [m int-map-generator k gen/pos-int]
-        (= (i/update m k f)
-          (assoc m k (f (get m k)))))))
+  (let [f #(if % (inc %) 1)]
+    (prop/for-all [m int-map-generator k gen/pos-int]
+      (= (i/update m k f)
+        (assoc m k (f (get m k)))))))
 
 (defspec equivalent-merge 1e3
   (prop/for-all [a int-map-generator, b int-map-generator]
@@ -57,4 +57,3 @@
 
 (defspec prop-dense-all-set-algebra-operators-equivalent 1000
   (all-set-algebra-operators-equivalent? i/dense-int-set))
-

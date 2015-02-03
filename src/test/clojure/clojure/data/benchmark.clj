@@ -45,7 +45,7 @@
     (r/fold i/merge conj entries))
 
   (println "into (int-map) fold/merge ordered")
-  (c/quick-bench
+  #_(c/quick-bench
     (r/fold i/merge conj ordered-entries))
 
   (let [m (into {} entries)]
