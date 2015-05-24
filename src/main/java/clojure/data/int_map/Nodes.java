@@ -45,7 +45,7 @@ public class Nodes {
     }
 
     public static long lowestBit(long n) {
-        return n & ~(n - 1);
+        return n & -n;
     }
 
     public static long highestBit(long n, long estimate) {
@@ -103,21 +103,26 @@ public class Nodes {
             return right.reduce(f, init);
         }
 
-        public Object fold(long n, IFn combiner, IFn reducer, IFn fjinvoke, IFn fjtask, IFn fjfork, IFn fjjoin) {
-            if (count() < 2*n) {
-                return reduce(reducer, combiner.invoke());
-            } else {
-                /*Callable c =
-                    new Callable {
-                        public Object call() throws Exception {
-
-                        }
-                    }
-                    fjinvoke.invoke*/
-                return null;
-            }
-
+        public Object kvreduce(IFn f, Object init) {
+            if (RT.isReduced(init)) return init;
+            init = left.kvreduce(f, init);
+            if (RT.isReduced(init)) return init;
+            return right.kvreduce(f, init);
         }
+
+        public Object fold(final long n, final IFn combiner, final IFn reducer, final IFn fjtask, final IFn fjfork, final IFn fjjoin) {
+            if (count() > n) {
+                Object forked = new Callable() {
+                        public Object call() throws Exception {
+                            return right.fold(n, combiner, reducer, fjtask, fjfork, fjjoin);
+                        }
+                    };
+                return combiner.invoke(left.fold(n, combiner, reducer, fjtask, fjfork, fjjoin), fjjoin.invoke(fjfork.invoke(fjtask.invoke(forked))));
+            } else {
+                return kvreduce(reducer, combiner.invoke());
+            }
+        }
+
         public long count() {
             if (count == -1) {
                 count = left.count() + right.count();
@@ -225,7 +230,7 @@ public class Nodes {
     // leaf node
     public static class Leaf implements INode {
         public final long key, epoch;
-        volatile Object value;
+        public volatile Object value;
 
         public Leaf(long key, long epoch, Object value) {
             this.key = key;
@@ -235,6 +240,14 @@ public class Nodes {
 
         public Object reduce(IFn f, Object init) {
             return f.invoke(init, new clojure.lang.MapEntry(key, value));
+        }
+
+        public Object kvreduce(IFn f, Object init) {
+            return f.invoke(init, key, value);
+        }
+
+        public Object fold(long n, IFn combiner, IFn reducer, IFn fjtask, IFn fjfork, IFn fjjoin) {
+            return kvreduce(reducer, combiner.invoke());
         }
 
         public long count() {
@@ -299,6 +312,14 @@ public class Nodes {
 
         public Object reduce(IFn f, Object init) {
             return init;
+        }
+
+        public Object kvreduce(IFn f, Object init) {
+            return init;
+        }
+
+        public Object fold(long n, IFn combiner, IFn reducer, IFn fjtask, IFn fjfork, IFn fjjoin) {
+            return combiner.invoke();
         }
 
         public long count() {

@@ -16,85 +16,88 @@
 
 (deftest ^:benchmark benchmark-maps
 
-  (println "into {} unordered")
+  (println "\ninto {} unordered")
   (c/quick-bench
     (into {} entries))
 
-  (println "into {} ordered")
+  (println "\ninto {} ordered")
   (c/quick-bench
     (into {} ordered-entries))
 
-  (println "into (sorted-map) unordered")
+  (println "\ninto (sorted-map) unordered")
   (c/quick-bench
     (into (sorted-map) entries))
 
-  (println "into (sorted-map) ordered")
+  (println "\ninto (sorted-map) ordered")
   (c/quick-bench
     (into (sorted-map) ordered-entries))
 
-  (println "into (int-map) unordered")
+  (println "\ninto (int-map) unordered")
   (c/quick-bench
     (into (i/int-map) entries))
 
-  (println "into (int-map) ordered")
+  (println "\ninto (int-map) ordered")
   (c/quick-bench
     (into (i/int-map) ordered-entries))
 
-  (println "into (int-map) fold/merge unordered")
+  (println "\ninto (int-map) fold/merge unordered")
   (c/quick-bench
     (r/fold i/merge conj entries))
 
-  (println "into (int-map) fold/merge ordered")
-  #_(c/quick-bench
+  (println "\ninto (int-map) fold/merge ordered")
+  (c/quick-bench
     (r/fold i/merge conj ordered-entries))
 
-  (let [m (into {} entries)]
-    (println "get {}")
+  (let [m (into {} entries)
+        r (java.util.Random.)]
+    (println "\nget {}")
     (c/quick-bench
-      (get m 1e3)))
+      (get m 1000)))
 
-  (let [m (into (i/int-map) entries)]
-    (println "get (int-map)")
+  (let [m (into (i/int-map) entries)
+        r (java.util.Random.)]
+    (println "\nget (int-map)")
     (c/quick-bench
-      (get m 1e3)))
+      (get m 1000)))
 
-  (let [m (into (sorted-map) entries)]
-    (println "get (sorted-map)")
+  (let [m (into (sorted-map) entries)
+        r (java.util.Random.)]
+    (println "\nget (sorted-map)")
     (c/quick-bench
-      (get m 1e3))))
+      (get m 1000))))
 
 ;;;
 
 (deftest ^:benchmark benchmark-modify-set
-  (println "sparse bitset into 1e3")
+  (println "\nsparse bitset into 1e3")
   (c/quick-bench
     (into (i/int-set) (range 1e3)))
-  (println "dense bitset into 1e3")
+  (println "\ndense bitset into 1e3")
   (c/quick-bench
     (into (i/dense-int-set) (range 1e3)))
-  (println "normal set into 1e3")
+  (println "\nnormal set into 1e3")
   (c/quick-bench
     (into #{} (range 1e3)))
-  (println "mutable bitset add 1e3")
+  (println "\nmutable bitset add 1e3")
   (c/quick-bench
     (let [^BitSet bitset (BitSet. 1e3)]
       (dotimes [idx 1e3]
         (.set bitset idx true)))))
 
 (deftest ^:benchmark benchmark-check-set
-  (println "check sparse bitset")
+  (println "\ncheck sparse bitset")
   (let [b (into (i/int-set) (range 1e3))]
     (c/quick-bench
       (contains? b 123)))
-  (println "check dense bitset")
+  (println "\ncheck dense bitset")
   (let [b (into (i/dense-int-set) (range 1e3))]
     (c/quick-bench
       (contains? b 123)))
-  (println "check normal set")
+  (println "\ncheck normal set")
   (let [s (into #{} (range 1e3))]
     (c/quick-bench
       (contains? s 123)))
-  (println "mutable bitset lookup")
+  (println "\nmutable bitset lookup")
   (let [b (BitSet. 1e3)]
     (c/quick-bench
       (.get b 123))))

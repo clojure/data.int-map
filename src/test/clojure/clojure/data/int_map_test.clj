@@ -2,14 +2,20 @@
   (:use
     [clojure.test])
   (:require
+    [rhizome.viz :as v]
     [clojure.set :as set]
     [clojure.core.reducers :as r]
     [clojure.data.int-map :as i]
     [collection-check :as check]
+    [clojure.string :as str]
     [clojure.test.check.generators :as gen]
     [clojure.test.check.properties :as prop]
     [clojure.test.check.clojure-test :as ct :refer (defspec)])
   (:import
+    [clojure.data.int_map
+     Nodes
+     Nodes$Leaf
+     Nodes$Branch]
     [java.util
      BitSet]))
 
@@ -33,9 +39,31 @@
       (= (i/update m k f)
         (assoc m k (f (get m k)))))))
 
+(defspec equivalent-update! 1e3
+  (prop/for-all [ks (gen/list gen/pos-int)]
+    (persistent! (reduce #(i/update! %1 %2 (fn [_])) (transient (i/int-map)) ks))))
+
 (defspec equivalent-merge 1e3
   (prop/for-all [a int-map-generator, b int-map-generator]
     (= (merge-with + a b) (i/merge-with + a b))))
+
+(defspec equivalent-fold 1e3
+  (prop/for-all [m int-map-generator]
+    (= (reduce-kv (fn [n _ v] (+ n v)) 0 m)
+      (r/fold 32 + (fn [n _ v] (+ n v)) m))))
+
+;;;
+
+(defn view-tree [m]
+  (let [r (.root m)]
+    (v/view-tree
+      #(instance? Nodes$Branch %)
+      #(vector (.left %) (.right %))
+      r
+      :node->descriptor (fn [n]
+                          {:label (if (instance? Nodes$Leaf n)
+                                    (str (.key n) "," (.value n))
+                                    (str (.prefix n), "," (.mask n)))}))))
 
 ;;;
 

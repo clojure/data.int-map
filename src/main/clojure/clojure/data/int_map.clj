@@ -80,7 +80,7 @@
   r/CollFold
 
   (coll-fold [this n combinef reducef]
-    (r/coll-fold root n combinef reducef))
+    (#'r/fjinvoke #(try (.fold root n combinef reducef #'r/fjtask #'r/fjfork #'r/fjjoin) (catch Throwable e (.printStackTrace e)))))
 
   clojure.core.protocols.CollReduce
 
@@ -94,6 +94,14 @@
   (coll-reduce
     [this f val]
     (let [x (.reduce root f val)]
+      (if (reduced? x)
+        @x
+        x)))
+
+  clojure.core.protocols.IKVReduce
+  (kv-reduce
+    [this f val]
+    (let [x (.kvreduce root f val)]
       (if (reduced? x)
         @x
         x)))

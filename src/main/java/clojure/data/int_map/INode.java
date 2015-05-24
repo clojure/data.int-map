@@ -12,6 +12,7 @@ public interface INode {
     INode update(long k, long epoch, IFn f);
     Object get(long k, Object defaultVal);
 
+    Object kvreduce(IFn f, Object init);
     Object reduce(IFn f, Object init);
-    // Object fold(long n, IFn combiner, IFn reducer, IFn joiner);
+    Object fold(long n, IFn combiner, IFn reducer, IFn fjtask, IFn fjfork, IFn fjjoin);
 }

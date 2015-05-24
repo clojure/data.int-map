@@ -7,10 +7,11 @@
   :test-paths ["src/test/clojure"]
   :dependencies []
   :profiles {:dev {:dependencies [[org.clojure/clojure "1.7.0-alpha5"]
-                                  [collection-check "0.1.5-SNAPSHOT"]
-                                  [criterium "0.4.3"]]}}
+                                  [collection-check "0.1.6-SNAPSHOT"]
+                                  [criterium "0.4.3"]
+                                  [rhizome "0.2.1"]]}}
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
   :java-source-paths ["src/main/java"]
-  :jvm-opts ^:replace ["-server" "-Xmx1g"]
+  :jvm-opts ^:replace ["-server" "-Xmx10g" "-XX:-OmitStackTraceInFastThrow" "-Xss750k"]
   :global-vars {*warn-on-reflection* true})
