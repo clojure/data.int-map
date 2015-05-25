@@ -13,6 +13,7 @@
     [clojure.test.check.clojure-test :as ct :refer (defspec)])
   (:import
     [clojure.data.int_map
+     INode
      Nodes
      Nodes$Leaf
      Nodes$Branch]
@@ -22,7 +23,7 @@
 ;;;
 
 (deftest test-map-like
-  (check/assert-map-like 1e3 (i/int-map) gen/pos-int gen/int))
+  (check/assert-map-like 1e3 (i/int-map) gen/int gen/int))
 
 (deftest test-set-like
   (check/assert-set-like 1e3 (i/int-set) gen/int))
@@ -44,13 +45,16 @@
     (persistent! (reduce #(i/update! %1 %2 (fn [_])) (transient (i/int-map)) ks))))
 
 (defspec equivalent-merge 1e3
-  (prop/for-all [a int-map-generator, b int-map-generator]
-    (= (merge-with + a b) (i/merge-with + a b))))
+  (prop/for-all [a (gen/list (gen/tuple gen/pos-int gen/int))
+                 b (gen/list (gen/tuple gen/pos-int gen/int))]
+    (let [a (into (i/int-map) a)
+          b (into (i/int-map) b)]
+      (= (merge-with - a b) (i/merge-with - a b)))))
 
 (defspec equivalent-fold 1e3
   (prop/for-all [m int-map-generator]
     (= (reduce-kv (fn [n _ v] (+ n v)) 0 m)
-      (r/fold 32 + (fn [n _ v] (+ n v)) m))))
+      (r/fold 8 + (fn [n _ v] (+ n v)) m))))
 
 ;;;
 
@@ -58,12 +62,12 @@
   (let [r (.root m)]
     (v/view-tree
       #(instance? Nodes$Branch %)
-      #(vector (.left %) (.right %))
+      #(remove nil? (.children %))
       r
       :node->descriptor (fn [n]
                           {:label (if (instance? Nodes$Leaf n)
                                     (str (.key n) "," (.value n))
-                                    (str (.prefix n), "," (.mask n)))}))))
+                                    (str (.offset n)))}))))
 
 ;;;
 

@@ -3,350 +3,444 @@ package clojure.data.int_map;
 import clojure.lang.IFn;
 import clojure.lang.AFn;
 import clojure.lang.RT;
+import clojure.lang.Util;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
 public class Nodes {
 
-    static class InvertFn extends AFn {
-        IFn f;
+  static class InvertFn extends AFn {
+    IFn f;
 
-        public InvertFn(IFn f) {
-            this.f = f;
-        }
-
-        public Object invoke(Object x, Object y) {
-            return f.invoke(y, x);
-        }
+    public InvertFn(IFn f) {
+      this.f = f;
     }
 
-    static public IFn invert(IFn f) {
-        if (f instanceof InvertFn) {
-            return ((InvertFn)f).f;
-        }
-        return new InvertFn(f);
+    public Object invoke(Object x, Object y) {
+      return f.invoke(y, x);
+    }
+  }
+
+  static public IFn invert(IFn f) {
+    if (f instanceof InvertFn) {
+      return ((InvertFn) f).f;
+    }
+    return new InvertFn(f);
+  }
+
+  // bitwise helper functions
+
+  public static boolean isOff(long n, long mask) {
+    return (n & mask) == 0;
+  }
+
+  public static long bitMask(long prefix, long mask) {
+    return (prefix | (mask - 1)) & ~mask;
+  }
+
+  public static boolean isMatch(long key, long prefix, long mask) {
+    long decMask = mask - 1;
+    long notMask = ~mask;
+
+    return ((prefix | decMask) & notMask) == ((key | decMask) & notMask);
+  }
+
+  public static long lowestBit(long n) {
+    return n & -n;
+  }
+
+  private static final byte deBrujinIndex[] =
+          new byte[]{0, 1, 2, 53, 3, 7, 54, 27, 4, 38, 41, 8, 34, 55, 48, 28,
+                  62, 5, 39, 46, 44, 42, 22, 9, 24, 35, 59, 56, 49, 18, 29, 11,
+                  63, 52, 6, 26, 37, 40, 33, 47, 61, 45, 43, 21, 23, 58, 17, 10,
+                  51, 25, 36, 32, 60, 20, 57, 16, 50, 31, 19, 15, 30, 14, 13, 12};
+
+  public static int bitLog2(long n) {
+    return deBrujinIndex[0xFF & (int) ((n * 0x022fdd63cc95386dL) >>> 58)];
+  }
+
+  public static int offset(long a, long b) {
+    return bitLog2(highestBit(a ^ b, 1)) & ~0x3;
+  }
+
+  public static long highestBit(long n, long estimate) {
+    long x = n & ~(estimate - 1);
+    long m;
+    while (true) {
+      m = lowestBit(x);
+      if (x == m) return m;
+      x -= m;
+    }
+  }
+
+  // 16-way branch node
+
+  public static class Branch implements INode {
+    public final long prefix, mask, epoch;
+    public final int offset;
+    long count;
+    public final INode[] children;
+
+    public Branch(long prefix, int offset, long epoch, long count, INode[] children) {
+      this.prefix = prefix;
+      this.offset = offset;
+      this.epoch = epoch;
+      this.mask = 0xf << offset;
+      this.count = count;
+      this.children = children;
     }
 
-    // bitwise helper functions
-
-    public static boolean isOff(long n, long mask) {
-        return (n & mask) == 0;
+    public Branch(long prefix, int offset, long epoch, INode[] children) {
+      this.prefix = prefix;
+      this.offset = offset;
+      this.epoch = epoch;
+      this.mask = 0xf << offset;
+      this.count = -1;
+      this.children = children;
     }
 
-    public static long bitMask(long prefix, long mask) {
-        return (prefix | (mask - 1)) & ~mask;
+    public int indexOf(long key) {
+      return (int) (key & mask) >>> offset;
     }
 
-    public static boolean isMatch(long key, long prefix, long mask) {
-        long decMask = mask - 1;
-        long notMask = ~mask;
-
-        return ((prefix | decMask) & notMask) == ((key | decMask) & notMask);
+    private INode[] arraycopy() {
+      INode[] copy = new INode[16];
+      System.arraycopy(children, 0, copy, 0, 16);
+      return copy;
     }
 
-    public static long lowestBit(long n) {
-        return n & -n;
+    public Object get(long k, Object defaultVal) {
+      INode n = children[indexOf(k)];
+      return n == null ? defaultVal : n.get(k, defaultVal);
     }
 
-    public static long highestBit(long n, long estimate) {
-        long x = n & ~(estimate - 1);
-        long m;
-        while (true) {
-            m = lowestBit(x);
-            if (x == m) return m;
-            x -= m;
-        }
+    public long count() {
+      int count = 0;
+      for (int i = 0; i < 16; i++) {
+        INode n = children[i];
+        if (n != null) count += n.count();
+      }
+      this.count = count;
+      return count;
     }
 
-    public static long branchingBit(long prefix0, long mask0, long prefix1, long mask1) {
-        return highestBit(prefix0 ^ prefix1, Math.max(1, 2*Math.max(mask0, mask1)));
-    }
+    public INode merge(INode node, long epoch, IFn f) {
+      if (node instanceof Branch) {
+        Branch branch = (Branch) node;
 
-    public static Branch join(long epoch, long prefix0, long mask0, INode n0, long prefix1, long mask1, INode n1) {
-        long mask = branchingBit(prefix0, mask0, prefix1, mask1);
-        if (isOff(prefix0, mask)) {
-            return new Branch(prefix0, mask, epoch, n0, n1);
+        // we contain the other node
+        if (offset > branch.offset) {
+          int idx = indexOf(branch.prefix);
+          INode[] children = arraycopy();
+          INode n = children[idx];
+          children[idx] = n != null ? n.merge(node, epoch, f) : node;
+          return new Branch(prefix, offset, epoch, children);
+
+          // the other node contains us
+        } else if (offset < branch.offset) {
+          return branch.merge(this, epoch, invert(f));
+
+          // same level, do a child-wise merge
         } else {
-            return new Branch(prefix0, mask, epoch, n1, n0);
+          INode[] children = new INode[16];
+          INode[] branchChildren = branch.children;
+          for (int i = 0; i < 16; i++) {
+            INode n = this.children[i];
+            INode nPrime = branchChildren[i];
+            if (n == null) {
+              children[i] = nPrime;
+            } else if (nPrime == null) {
+              children[i] = n;
+            } else {
+              children[i] = n.merge(nPrime, epoch, f);
+            }
+          }
+          return new Branch(prefix, offset, epoch, children);
         }
+      } else {
+        return node.merge(this, epoch, invert(f));
+      }
     }
 
-    // branch node
-
-    public static class Branch implements INode {
-        public final long prefix, mask, epoch;
-        long count;
-        public INode left, right;
-
-        public Branch(long prefix, long mask, long epoch, long count, INode left, INode right) {
-            this.prefix = bitMask(prefix, mask);
-            this.mask = mask;
-            this.epoch = epoch;
-            this.count = count;
-            this.left = left;
-            this.right = right;
-        }
-
-        public Branch(long prefix, long mask, long epoch, INode left, INode right) {
-            this.prefix = bitMask(prefix, mask);
-            this.mask = mask;
-            this.epoch = epoch;
-            this.count = -1;
-            this.left = left;
-            this.right = right;
-        }
-
-        public Object reduce(IFn f, Object init) {
-            if (RT.isReduced(init)) return init;
-            init = left.reduce(f, init);
-            if (RT.isReduced(init)) return init;
-            return right.reduce(f, init);
-        }
-
-        public Object kvreduce(IFn f, Object init) {
-            if (RT.isReduced(init)) return init;
-            init = left.kvreduce(f, init);
-            if (RT.isReduced(init)) return init;
-            return right.kvreduce(f, init);
-        }
-
-        public Object fold(final long n, final IFn combiner, final IFn reducer, final IFn fjtask, final IFn fjfork, final IFn fjjoin) {
-            if (count() > n) {
-                Object forked = new Callable() {
-                        public Object call() throws Exception {
-                            return right.fold(n, combiner, reducer, fjtask, fjfork, fjjoin);
-                        }
-                    };
-                return combiner.invoke(left.fold(n, combiner, reducer, fjtask, fjfork, fjjoin), fjjoin.invoke(fjfork.invoke(fjtask.invoke(forked))));
-            } else {
-                return kvreduce(reducer, combiner.invoke());
-            }
-        }
-
-        public long count() {
-            if (count == -1) {
-                count = left.count() + right.count();
-            }
-            return count;
-        }
-
-        public INode update(long k, long epoch, IFn f) {
-            if (k <= prefix) {
-                INode l = left.update(k, epoch, f);
-                if (l == left) return this;
-                return new Branch(prefix, mask, epoch, count, l, right);
-            } else {
-                INode r = right.update(k, epoch, f);
-                if (r == right) return this;
-                return new Branch(prefix, mask, epoch, count, left, r);
-            }
-        }
-
-        public INode merge(INode node, long epoch, IFn f) {
-            if (node instanceof Branch) {
-                Branch b = (Branch) node;
-
-                if (prefix == b.prefix && mask == b.mask) {
-                    // recursively merge
-                    return new Branch(prefix, mask, epoch, left.merge(b.left, epoch, f), right.merge(b.right, epoch, f));
-
-                } else if (mask > b.mask && isMatch(b.prefix, prefix, mask)) {
-                    // we contain the other node
-                    if (isOff(b.prefix, mask)) {
-                        return new Branch(prefix, mask, epoch, left.merge(b, epoch, f), right);
-                    } else {
-                        return new Branch(prefix, mask, epoch, left, right.merge(b, epoch, f));
-                    }
-
-                } else if (mask < b.mask && isMatch(prefix, b.prefix, b.mask)) {
-                    // the other node contains us
-                    if (isOff(prefix, b.mask)) {
-                        return new Branch(b.prefix, b.mask, epoch, merge(b.left, epoch, f), b.right);
-                    } else {
-                        return new Branch(b.prefix, b.mask, epoch, b.left, merge(b.right, epoch, f));
-                    }
-
-                } else {
-                    // create node that contains both of us
-                    return join(epoch, prefix, mask, this, b.prefix, b.mask, b);
-                }
-            } else {
-                return node.merge(this, epoch, invert(f));
-            }
-        }
-
-        public void entries(List accumulator) {
-            left.entries(accumulator);
-            right.entries(accumulator);
-        }
-
-        public INode assoc(long k, long epoch, IFn f, Object v) {
-            if (isMatch(k, prefix, mask)) {
-                if (isOff(k, mask)) {
-                    INode l = left.assoc(k, epoch, f, v);
-                    if (l == left) {
-                        return this;
-                    } else if (epoch == this.epoch) {
-                        left = l;
-                        return this;
-                    }
-                    return new Branch(prefix, mask, epoch, l, right);
-                } else {
-                    INode r = right.assoc(k, epoch, f, v);
-                    if (r == right) {
-                        return this;
-                    } else if (epoch == this.epoch) {
-                        right = r;
-                        return this;
-                    }
-                    return new Branch(prefix, mask, epoch, left, r);
-                }
-            } else {
-                return join(epoch, k, mask, new Leaf(k, epoch, v), prefix, mask, this);
-            }
-        }
-
-        public INode dissoc(long k, long epoch) {
-            if (k <= prefix) {
-                INode l = left.dissoc(k, epoch);
-                if (l == left) return this;
-                return new Branch(prefix, mask, epoch, l, right);
-            } else {
-                INode r = right.dissoc(k, epoch);
-                if (r == right) return this;
-                return new Branch(prefix, mask, epoch, left, r);
-            }
-        }
-
-        public Object get(long k, Object defaultVal) {
-            if (k <= prefix) {
-                return left.get(k, defaultVal);
-            } else {
-                return right.get(k, defaultVal);
-            }
-        }
+    public void entries(List accumulator) {
+      for (int i = 0; i < 16; i++) {
+        INode n = children[i];
+        if (n != null) n.entries(accumulator);
+      }
     }
 
-    // leaf node
-    public static class Leaf implements INode {
-        public final long key, epoch;
-        public volatile Object value;
+    public INode assoc(long k, long epoch, IFn f, Object v) {
+      int offsetPrime = offset(k, prefix);
 
-        public Leaf(long key, long epoch, Object value) {
-            this.key = key;
-            this.epoch = epoch;
-            this.value = value;
-        }
+      // need a new branch above us both
+      if (offsetPrime > this.offset) {
+        return new Branch(k, offsetPrime, epoch, new INode[16])
+                .merge(this, epoch, null)
+                .assoc(k, epoch, f, v);
 
-        public Object reduce(IFn f, Object init) {
-            return f.invoke(init, new clojure.lang.MapEntry(key, value));
-        }
-
-        public Object kvreduce(IFn f, Object init) {
-            return f.invoke(init, key, value);
-        }
-
-        public Object fold(long n, IFn combiner, IFn reducer, IFn fjtask, IFn fjfork, IFn fjjoin) {
-            return kvreduce(reducer, combiner.invoke());
-        }
-
-        public long count() {
-            return 1;
-        }
-
-        public INode merge(INode node, long epoch, IFn f) {
-            return node.assoc(key, epoch, f, value);
-        }
-
-        public void entries(List accumulator) {
-            accumulator.add(new clojure.lang.MapEntry(key, value));
-        }
-
-        public INode assoc(long k, long epoch, IFn f, Object v) {
-            if (k == key) {
-                v = f == null ? v : f.invoke(value, v);
-                if (this.epoch == epoch) {
-                    value = v;
-                    return this;
-                } else {
-                    return new Leaf(k, epoch, v);
-                }
-            } else {
-                return join(epoch, k, 0, new Leaf(k, epoch, v), key, 0, this);
-            }
-        }
-
-        public INode dissoc(long k, long epoch) {
-            if (key == k) {
-                return new Empty();
-            } else {
-                return this;
-            }
-        }
-
-        public INode update(long k, long epoch, IFn f) {
-            if (k == key) {
-                Object v = f.invoke(value);
-                if (this.epoch == epoch) {
-                    value = v;
-                    return this;
-                } else {
-                    return new Leaf(k, epoch, v);
-                }
-            } else {
-                return this.assoc(k, epoch, null, f.invoke(null));
-            }
-        }
-
-        public Object get(long k, Object defaultVal) {
-            if (k == key) return value;
-            return defaultVal;
-        }
-    }
-
-    // empty node
-    public static class Empty implements INode {
-
-        public Empty() {
-        }
-
-        public Object reduce(IFn f, Object init) {
-            return init;
-        }
-
-        public Object kvreduce(IFn f, Object init) {
-            return init;
-        }
-
-        public Object fold(long n, IFn combiner, IFn reducer, IFn fjtask, IFn fjfork, IFn fjjoin) {
-            return combiner.invoke();
-        }
-
-        public long count() {
-            return 0;
-        }
-
-        public INode merge(INode node, long epoch, IFn f) {
-            return node;
-        }
-
-        public void entries(List accumulator) {
-        }
-
-        public INode assoc(long k, long epoch, IFn f, Object v) {
-            return new Leaf(k, epoch, v);
-        }
-
-        public INode dissoc(long k, long epoch) {
+        // somewhere at or below our level
+      } else {
+        int idx = indexOf(k);
+        INode n = children[idx];
+        if (n == null) {
+          if (epoch == this.epoch) {
+            children[idx] = new Leaf(k, epoch, v);
+            count = -1;
             return this;
+          } else {
+            INode[] children = arraycopy();
+            children[idx] = new Leaf(k, epoch, v);
+            return new Branch(prefix, offset, epoch, count, children);
+          }
+        } else {
+          INode nPrime = n.assoc(k, epoch, f, v);
+          if (nPrime == n) {
+            count = -1;
+            return this;
+          } else {
+            INode[] children = arraycopy();
+            children[idx] = nPrime;
+            return new Branch(prefix, offset, epoch, count, children);
+          }
         }
-
-        public INode update(long k, long epoch, IFn f) {
-            return new Leaf(k, epoch, f.invoke(null));
-        }
-
-        public Object get(long k, Object defaultVal) {
-            return defaultVal;
-        }
+      }
     }
+
+    public INode dissoc(long k, long epoch) {
+      int idx = indexOf(k);
+      INode n = children[idx];
+      if (n == null) {
+        return this;
+      } else {
+        INode nPrime = n.dissoc(k, epoch);
+        if (nPrime == n) {
+          count = -1;
+          return this;
+        } else {
+          INode[] children = arraycopy();
+          children[idx] = nPrime;
+          return new Branch(prefix, offset, epoch, count, children);
+        }
+      }
+    }
+
+    public INode update(long k, long epoch, IFn f) {
+      int idx = indexOf(k);
+      INode n = children[idx];
+      if (n == null) {
+        if (epoch == this.epoch) {
+          children[idx] = new Leaf(k, epoch, f.invoke(null));
+          count = -1;
+          return this;
+        } else {
+          INode[] children = arraycopy();
+          children[idx] = new Leaf(k, epoch, f.invoke(null));
+          return new Branch(prefix, offset, epoch, count, children);
+        }
+      } else {
+        INode nPrime = n.update(k, epoch, f);
+        if (nPrime == n) {
+          count = -1;
+          return this;
+        } else {
+          INode[] children = arraycopy();
+          children[idx] = nPrime;
+          return new Branch(prefix, offset, epoch, count, children);
+        }
+      }
+    }
+
+    public Object kvreduce(IFn f, Object init) {
+      for (int i = 0; i < 16; i++) {
+        INode n = children[i];
+        if (n != null) init = n.kvreduce(f, init);
+        if (RT.isReduced(init)) break;
+      }
+      return init;
+    }
+
+    public Object reduce(IFn f, Object init) {
+      for (int i = 0; i < 16; i++) {
+        INode n = children[i];
+        if (n != null) init = n.reduce(f, init);
+        if (RT.isReduced(init)) break;
+      }
+      return init;
+    }
+
+    // adapted from the PersistentHashMap.ArrayNode implementation
+    static public Object foldTasks(List<Callable> tasks, final IFn combiner, final IFn fjtask, final IFn fjfork, final IFn fjjoin) {
+
+      if (tasks.isEmpty()) {
+        return combiner.invoke();
+
+        // just wait on the one value
+      } else if (tasks.size() == 1) {
+        try {
+          return tasks.get(0).call();
+        } catch (Exception e) {
+          throw Util.sneakyThrow(e);
+        }
+
+        // divide and conquer
+      } else {
+        List<Callable> t1 = tasks.subList(0, tasks.size() / 2);
+        final List<Callable> t2 = tasks.subList(tasks.size() / 2, tasks.size());
+
+        Object forked = fjfork.invoke(fjtask.invoke(new Callable() {
+          public Object call() throws Exception {
+            return foldTasks(t2, combiner, fjtask, fjfork, fjjoin);
+          }
+        }));
+
+        return combiner.invoke(foldTasks(t1, combiner, fjtask, fjfork, fjjoin), fjjoin.invoke(forked));
+      }
+    }
+
+    public Object fold(final long n, final IFn combiner, final IFn reducer, final IFn fjtask, final IFn fjfork, final IFn fjjoin) {
+      if (n > count()) {
+        List<Callable> tasks = new ArrayList();
+        for (int i = 0; i < 16; i++) {
+          final INode node = children[i];
+          if (node != null) {
+            tasks.add(new Callable() {
+              public Object call() throws Exception {
+                return node.fold(n, combiner, reducer, fjtask, fjfork, fjjoin);
+              }
+            });
+          }
+        }
+        return foldTasks(tasks, combiner, fjtask, fjfork, fjjoin);
+      } else {
+        return kvreduce(reducer, combiner.invoke());
+      }
+    }
+  }
+
+  // leaf node
+  public static class Leaf implements INode {
+    public final long key, epoch;
+    public volatile Object value;
+
+    public Leaf(long key, long epoch, Object value) {
+      this.key = key;
+      this.epoch = epoch;
+      this.value = value;
+    }
+
+    public Object reduce(IFn f, Object init) {
+      return f.invoke(init, new clojure.lang.MapEntry(key, value));
+    }
+
+    public Object kvreduce(IFn f, Object init) {
+      return f.invoke(init, key, value);
+    }
+
+    public Object fold(long n, IFn combiner, IFn reducer, IFn fjtask, IFn fjfork, IFn fjjoin) {
+      return kvreduce(reducer, combiner.invoke());
+    }
+
+    public long count() {
+      return 1;
+    }
+
+    public INode merge(INode node, long epoch, IFn f) {
+      return node.assoc(key, epoch, invert(f), value);
+    }
+
+    public void entries(List accumulator) {
+      accumulator.add(new clojure.lang.MapEntry(key, value));
+    }
+
+    public INode assoc(long k, long epoch, IFn f, Object v) {
+      if (k == key) {
+        v = f == null ? v : f.invoke(value, v);
+        if (this.epoch == epoch) {
+          value = v;
+          return this;
+        } else {
+          return new Leaf(k, epoch, v);
+        }
+      } else {
+        return new Branch(k, offset(k, key), epoch, new INode[16])
+                .assoc(key, epoch, f, value)
+                .assoc(k, epoch, f, v);
+      }
+    }
+
+    public INode dissoc(long k, long epoch) {
+      if (key == k) {
+        return new Empty();
+      } else {
+        return this;
+      }
+    }
+
+    public INode update(long k, long epoch, IFn f) {
+      if (k == key) {
+        Object v = f.invoke(value);
+        if (this.epoch == epoch) {
+          value = v;
+          return this;
+        } else {
+          return new Leaf(k, epoch, v);
+        }
+      } else {
+        return this.assoc(k, epoch, null, f.invoke(null));
+      }
+    }
+
+    public Object get(long k, Object defaultVal) {
+      if (k == key) return value;
+      return defaultVal;
+    }
+  }
+
+  // empty node
+  public static class Empty implements INode {
+
+    public Empty() {
+    }
+
+    public Object reduce(IFn f, Object init) {
+      return init;
+    }
+
+    public Object kvreduce(IFn f, Object init) {
+      return init;
+    }
+
+    public Object fold(long n, IFn combiner, IFn reducer, IFn fjtask, IFn fjfork, IFn fjjoin) {
+      return combiner.invoke();
+    }
+
+    public long count() {
+      return 0;
+    }
+
+    public INode merge(INode node, long epoch, IFn f) {
+      return node;
+    }
+
+    public void entries(List accumulator) {
+    }
+
+    public INode assoc(long k, long epoch, IFn f, Object v) {
+      return new Leaf(k, epoch, v);
+    }
+
+    public INode dissoc(long k, long epoch) {
+      return this;
+    }
+
+    public INode update(long k, long epoch, IFn f) {
+      return new Leaf(k, epoch, f.invoke(null));
+    }
+
+    public Object get(long k, Object defaultVal) {
+      return defaultVal;
+    }
+  }
 }

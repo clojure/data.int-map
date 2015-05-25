@@ -147,8 +147,6 @@
   (assoc [this k v]
     (let [k (long k)
           epoch' (inc epoch)]
-      (when (< k 0)
-        (throw (IllegalArgumentException. "int-map can only have non-negative integers as keys")))
       (PersistentIntMap.
         (.assoc root (long k) epoch' default-merge v)
         epoch'
@@ -278,8 +276,6 @@
 
   (assoc [this k v]
     (let [k (long k)
-          _ (when (< k 0)
-              (throw (IllegalArgumentException. "int-map can only have non-negative integers as keys")))
           root' (.assoc root (long k) epoch default-merge v)]
       (if (identical? root' root)
         this
@@ -371,8 +367,6 @@
 (definline ^:private >>> [x n]
   `(unsigned-bit-shift-right ~x ~n))
 
-(def ^:const ^:private offset (>>> -1 2))
-
 (deftype Chunk
   [^int generation
    ^BitSet bitset])
@@ -403,7 +397,7 @@
            field-names))))
 
 (definline ^:private chunk-idx [n bit-shift]
-  `(+ (>> ~n ~bit-shift) offset))
+  `(>> ~n ~bit-shift))
 
 (definline ^:private idx-within-chunk [n bit-shift]
   `(bit-and ~n (-> 1 (<< ~bit-shift) dec)))
@@ -465,7 +459,7 @@
     (when-not (zero? cnt)
       (mapcat
         (fn [[slot ^Chunk v]]
-          (bit-seq (.bitset v) (<< (long (- slot offset)) log2-chunk-size)))
+          (bit-seq (.bitset v) (<< (long slot) log2-chunk-size)))
         m)))
 
   clojure.lang.IFn

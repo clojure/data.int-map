@@ -1,4 +1,4 @@
-(defproject org.clojure/data.int-map "0.1.1-SNAPSHOT"
+(defproject org.clojure/data.int-map "0.2.0-SNAPSHOT"
   :description "Set and map data structures optimized for integer keys and elements."
   :url "https://github.com/clojure/data.int-map"
   :license {:name "Eclipse Public License"
@@ -6,8 +6,8 @@
   :source-paths ["src/main/clojure"]
   :test-paths ["src/test/clojure"]
   :dependencies []
-  :profiles {:dev {:dependencies [[org.clojure/clojure "1.7.0-alpha5"]
-                                  [collection-check "0.1.6-SNAPSHOT"]
+  :profiles {:dev {:dependencies [[org.clojure/clojure "1.7.0-beta2"]
+                                  [collection-check "0.1.6"]
                                   [criterium "0.4.3"]
                                   [rhizome "0.2.1"]]}}
   :test-selectors {:default (complement :benchmark)

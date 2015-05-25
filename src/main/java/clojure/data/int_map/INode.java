@@ -4,7 +4,9 @@ import java.util.List;
 import clojure.lang.IFn;
 
 public interface INode {
+
     long count();
+
     INode merge(INode node, long epoch, IFn f);
     void entries(List accumulator);
     INode assoc(long k, long epoch, IFn f, Object v);

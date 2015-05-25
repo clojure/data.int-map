@@ -13,7 +13,7 @@ nil
 {}
 ```
 
-These maps support transient/persistent semantics, and also provide special `merge`, `merge-with`, `update`, and `update!` methods that provide significantly faster performance than their normal Clojure counterparts.  The keys must be in the range of `[0, Long/MAX_VALUE]`.
+These maps support transient/persistent semantics, and also provide special `merge`, `merge-with`, `update`, and `update!` methods that provide significantly faster performance than their normal Clojure counterparts.  The elements must be in the range `[Long/MIN_VALUE, Long/MAX_VALUE]`.
 
 The fact that int-maps are mergeable means that they can be used very effectively with Clojure's [reducer](http://clojure.com/blog/2012/05/08/reducers-a-library-and-model-for-collection-processing.html) mechanism.  For instance, consider populating a data structure.  Typically, we'd use `into`:
 
@@ -44,12 +44,12 @@ If `entries` is a data structure that `fold` can split, such as a vector or hash
 
 | | unsorted entries | sorted entries |
 |----|------------------|-------------|
-| `(into {} ...)` | 615 | 500 |
-| `(into (sorted-map) ...)` | 2140 | 1200 |
-| `(into (i/int-map) ...)` | 1200 | 250 |
-| `(fold i/merge conj ...)` | 375 | 65 |
+| `(into {} ...)` | 630 | 500 |
+| `(into (sorted-map) ...)` | 2035 | 1080 |
+| `(into (i/int-map) ...)` | 529 | 187 |
+| `(fold i/merge conj ...)` | 273 | 53 |
 
-As we can see, populating the int-map with keys in non-sorted order is slower (though always faster than Clojure's sorted map implementation), but using `fold` gives us performance that Clojure's standard data structures can't match.
+As we can see, the int-map implementation is faster in all cases, and an entire order of magnitdue faster when using `fold` on ordered entries.
 
 ## Sets
 
@@ -103,6 +103,6 @@ have signed the Clojure Contributor Agreement.
 
 ## License
 
-Copyright © 2014 Zach Tellman, Rich Hickey and contributors
+Copyright © 2015 Zach Tellman, Rich Hickey and contributors
 
 Distributed under the Eclipse Public License, the same as Clojure.
