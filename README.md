@@ -13,7 +13,7 @@ nil
 {}
 ```
 
-These maps support transient/persistent semantics, and also provide special `merge`, `merge-with`, `update`, and `update!` methods that provide significantly faster performance than their normal Clojure counterparts.  The elements must be in the range `[Long/MIN_VALUE, Long/MAX_VALUE]`.
+These maps support transient/persistent semantics, and also provide special `merge`, `merge-with`, `update`, and `update!` methods that provide significantly faster performance than their normal Clojure counterparts.  The elements must be in the range `[Long/MIN_VALUE, Long/MAX_VALUE]`.  They can be used to represent normal maps which have integral keys, or sparse vectors.
 
 The fact that int-maps are mergeable means that they can be used very effectively with Clojure's [reducer](http://clojure.com/blog/2012/05/08/reducers-a-library-and-model-for-collection-processing.html) mechanism.  For instance, consider populating a data structure.  Typically, we'd use `into`:
 
