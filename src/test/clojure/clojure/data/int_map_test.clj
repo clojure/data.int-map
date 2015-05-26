@@ -2,7 +2,7 @@
   (:use
     [clojure.test])
   (:require
-    [rhizome.viz :as v]
+    #_[rhizome.viz :as v]
     [clojure.set :as set]
     [clojure.core.reducers :as r]
     [clojure.data.int-map :as i]
@@ -58,7 +58,7 @@
 
 ;;;
 
-(defn view-tree [m]
+#_(defn view-tree [m]
   (let [r (.root m)]
     (v/view-tree
       #(instance? Nodes$Branch %)
