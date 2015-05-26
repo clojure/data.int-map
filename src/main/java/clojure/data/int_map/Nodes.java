@@ -32,21 +32,6 @@ public class Nodes {
 
   // bitwise helper functions
 
-  public static boolean isOff(long n, long mask) {
-    return (n & mask) == 0;
-  }
-
-  public static long bitMask(long prefix, long mask) {
-    return (prefix | (mask - 1)) & ~mask;
-  }
-
-  public static boolean isMatch(long key, long prefix, long mask) {
-    long decMask = mask - 1;
-    long notMask = ~mask;
-
-    return ((prefix | decMask) & notMask) == ((key | decMask) & notMask);
-  }
-
   public static long lowestBit(long n) {
     return n & -n;
   }
