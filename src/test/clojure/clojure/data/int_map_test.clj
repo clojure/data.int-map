@@ -56,9 +56,14 @@
     (= (reduce-kv (fn [n _ v] (+ n v)) 0 m)
       (r/fold 8 + (fn [n _ v] (+ n v)) m))))
 
-(defspec equivalent-order 1e4
+(defspec equivalent-map-order 1e4
   (prop/for-all [ks (gen/list gen/int)]
     (= (keys (reduce #(assoc %1 %2 nil) (i/int-map) ks))
+      (seq (sort (distinct ks))))))
+
+(defspec equivalent-set-order 1e4
+  (prop/for-all [ks (gen/list gen/int)]
+    (= (seq (reduce #(conj %1 %2) (i/int-set) ks))
       (seq (sort (distinct ks))))))
 ;;;
 

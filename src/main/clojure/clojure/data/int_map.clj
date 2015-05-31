@@ -457,10 +457,12 @@
   clojure.lang.Seqable
   (seq [_]
     (when-not (zero? cnt)
-      (mapcat
-        (fn [[slot ^Chunk v]]
-          (bit-seq (.bitset v) (<< (long slot) log2-chunk-size)))
-        m)))
+      (let [s (mapcat
+                (fn [[slot ^Chunk v]]
+                  (bit-seq (.bitset v) (<< (long slot) log2-chunk-size)))
+                m)]
+        (when-not (empty? s)
+          s))))
 
   clojure.lang.IFn
   (invoke [this idx]

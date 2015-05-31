@@ -87,7 +87,8 @@ public class Nodes {
     }
 
     public int indexOf(long key) {
-      return (int) (key & mask) >>> offset;
+      int index = (int) (key & mask) >>> offset;
+      return offset == 60 ? (key < 0 ? 0 : index+1) : index;
     }
 
     private INode[] arraycopy() {
@@ -150,20 +151,10 @@ public class Nodes {
     }
 
     public void entries(List accumulator) {
-        if (offset == 60) {
-            if (children[15] != null) {
-                children[15].entries(accumulator);
-            }
-            for (int i = 0; i < 15; i++) {
-                INode n = children[i];
-                if (n != null) n.entries(accumulator);
-            }
-        } else {
-            for (int i = 0; i < 16; i++) {
-                INode n = children[i];
-                if (n != null) n.entries(accumulator);
-            }
-        }
+      for (int i = 0; i < 16; i++) {
+        INode n = children[i];
+        if (n != null) n.entries(accumulator);
+      }
     }
 
     public INode assoc(long k, long epoch, IFn f, Object v) {
