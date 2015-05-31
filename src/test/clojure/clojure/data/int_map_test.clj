@@ -32,21 +32,21 @@
   (gen/fmap
     (fn [ks]
       (into (i/int-map) ks))
-    (gen/list (gen/tuple gen/pos-int gen/int))))
+    (gen/list (gen/tuple gen/int gen/int))))
 
 (defspec equivalent-update 1e3
   (let [f #(if % (inc %) 1)]
-    (prop/for-all [m int-map-generator k gen/pos-int]
+    (prop/for-all [m int-map-generator k gen/int]
       (= (i/update m k f)
         (assoc m k (f (get m k)))))))
 
 (defspec equivalent-update! 1e3
-  (prop/for-all [ks (gen/list gen/pos-int)]
+  (prop/for-all [ks (gen/list gen/int)]
     (persistent! (reduce #(i/update! %1 %2 (fn [_])) (transient (i/int-map)) ks))))
 
 (defspec equivalent-merge 1e3
-  (prop/for-all [a (gen/list (gen/tuple gen/pos-int gen/int))
-                 b (gen/list (gen/tuple gen/pos-int gen/int))]
+  (prop/for-all [a (gen/list (gen/tuple gen/int gen/int))
+                 b (gen/list (gen/tuple gen/int gen/int))]
     (let [a (into (i/int-map) a)
           b (into (i/int-map) b)]
       (= (merge-with - a b) (i/merge-with - a b)))))
@@ -56,6 +56,10 @@
     (= (reduce-kv (fn [n _ v] (+ n v)) 0 m)
       (r/fold 8 + (fn [n _ v] (+ n v)) m))))
 
+(defspec equivalent-order 1e4
+  (prop/for-all [ks (gen/list gen/int)]
+    (= (keys (reduce #(assoc %1 %2 nil) (i/int-map) ks))
+      (seq (sort (distinct ks))))))
 ;;;
 
 #_(defn view-tree [m]

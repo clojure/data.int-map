@@ -150,10 +150,20 @@ public class Nodes {
     }
 
     public void entries(List accumulator) {
-      for (int i = 0; i < 16; i++) {
-        INode n = children[i];
-        if (n != null) n.entries(accumulator);
-      }
+        if (offset == 60) {
+            if (children[15] != null) {
+                children[15].entries(accumulator);
+            }
+            for (int i = 0; i < 15; i++) {
+                INode n = children[i];
+                if (n != null) n.entries(accumulator);
+            }
+        } else {
+            for (int i = 0; i < 16; i++) {
+                INode n = children[i];
+                if (n != null) n.entries(accumulator);
+            }
+        }
     }
 
     public INode assoc(long k, long epoch, IFn f, Object v) {
