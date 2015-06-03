@@ -16,6 +16,7 @@
      INode
      Nodes
      Nodes$Leaf
+     Nodes$Empty
      Nodes$Branch]
     [java.util
      BitSet]))
@@ -74,8 +75,14 @@
       #(remove nil? (.children %))
       r
       :node->descriptor (fn [n]
-                          {:label (if (instance? Nodes$Leaf n)
+                          {:label (cond
+                                    (instance? Nodes$Leaf n)
                                     (str (.key n) "," (.value n))
+
+                                    (instance? Nodes$Empty n)
+                                    ""
+
+                                    :else
                                     (str (.offset n)))}))))
 
 ;;;

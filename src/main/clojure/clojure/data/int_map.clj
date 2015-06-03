@@ -1,5 +1,5 @@
 (ns
-  ^{:doc "A straightforward port of Okasaki and Gill's \"Fast Mergeable Integer Maps`\",
+  ^{:doc "An adaptation of Okasaki and Gill's \"Fast Mergeable Integer Maps`\",
           which can be found at http://ittc.ku.edu/~andygill/papers/IntMap98.pdf"}
   clojure.data.int-map
   (:refer-clojure
@@ -11,7 +11,8 @@
      BitSet]
     [clojure.data.int_map
      INode
-     Nodes$Empty]))
+     Nodes$Empty
+     INode$IterationType]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* true)
@@ -73,9 +74,7 @@
 
   clojure.lang.Seqable
   (seq [this]
-    (let [acc (java.util.ArrayList.)]
-      (.entries root acc)
-      (seq acc)))
+    (iterator-seq (.iterator this)))
 
   r/CollFold
 
@@ -153,7 +152,7 @@
         meta)))
 
   (empty [this]
-    (PersistentIntMap. (Nodes$Empty.) 0 nil))
+    (PersistentIntMap. Nodes$Empty/EMPTY 0 nil))
 
   clojure.lang.IEditableCollection
   (asTransient [this]
@@ -166,8 +165,9 @@
     (empty? (seq this)))
   (size [this]
     (count this))
-  (keySet [_]
-    (->> (.entries root [])
+  (keySet [this]
+    (->> this
+      seq
       (map key)
       set))
   (put [_ _ _]
@@ -183,7 +183,7 @@
   (entrySet [this]
     (->> this seq set))
   (iterator [this]
-    (clojure.lang.SeqIterator. (seq this)))
+    (.iterator root INode$IterationType/ENTRIES))
 
   clojure.lang.IPersistentMap
   (assocEx [this k v]
@@ -194,7 +194,7 @@
     (let [k (long k)
           epoch' (inc epoch)]
       (PersistentIntMap.
-        (.dissoc root k epoch')
+        (or (.dissoc root k epoch') Nodes$Empty/EMPTY)
         epoch'
         meta)))
 
@@ -236,9 +236,7 @@
 
   clojure.lang.Seqable
   (seq [this]
-    (let [acc (java.util.ArrayList.)]
-      (.entries root acc)
-      (seq acc)))
+    (iterator-seq (.iterator root INode$IterationType/ENTRIES)))
 
   Object
   (hashCode [this]
@@ -290,7 +288,7 @@
     (PersistentIntMap. root (inc epoch) meta))
 
   (without [this k]
-    (let [root' (.dissoc root (long k) epoch)]
+    (let [root' (or (.dissoc root (long k) epoch) Nodes$Empty/EMPTY)]
       (if (identical? root' root)
         this
         (TransientIntMap. root' epoch meta))))
@@ -311,7 +309,7 @@
 (defn int-map
   "Creates an integer map that can only have non-negative integers as keys."
   ([]
-     (PersistentIntMap. (Nodes$Empty.) 0 nil))
+     (PersistentIntMap. Nodes$Empty/EMPTY 0 nil))
   ([a b]
      (assoc (int-map) a b))
   ([a b & rest]

@@ -1,14 +1,21 @@
 package clojure.data.int_map;
 
+import java.util.Iterator;
 import java.util.List;
 import clojure.lang.IFn;
 
 public interface INode {
 
+    public enum IterationType {
+      KEYS,
+      VALS,
+      ENTRIES
+    }
+
     long count();
+    Iterator iterator(IterationType type);
 
     INode merge(INode node, long epoch, IFn f);
-    void entries(List accumulator);
     INode assoc(long k, long epoch, IFn f, Object v);
     INode dissoc(long k, long epoch);
     INode update(long k, long epoch, IFn f);

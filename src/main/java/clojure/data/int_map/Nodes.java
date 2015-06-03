@@ -6,7 +6,9 @@ import clojure.lang.RT;
 import clojure.lang.Util;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.Callable;
 
 public class Nodes {
@@ -97,6 +99,47 @@ public class Nodes {
       return copy;
     }
 
+    public Iterator iterator(final IterationType type) {
+      return new Iterator() {
+
+        private byte idx = -1;
+        private Iterator iterator = null;
+
+        private void advanceToNext() {
+          while (++idx < 16) {
+            INode c = children[idx];
+            if (c != null) {
+              iterator = children[idx].iterator(type);
+              return;
+            }
+          }
+          iterator = null;
+        }
+
+        public boolean hasNext() {
+          if (iterator != null && iterator.hasNext()) {
+            return true;
+          }
+          advanceToNext();
+          return iterator != null;
+        }
+
+        public Object next() {
+          if (iterator != null && iterator.hasNext()) {
+            return iterator.next();
+          } else {
+            advanceToNext();
+            if (iterator != null) return iterator.next();
+            throw new NoSuchElementException();
+          }
+        }
+
+        public void remove() {
+          throw new UnsupportedOperationException();
+        }
+      };
+    }
+
     public Object get(long k, Object defaultVal) {
       INode n = children[indexOf(k)];
       return n == null ? defaultVal : n.get(k, defaultVal);
@@ -150,13 +193,6 @@ public class Nodes {
       }
     }
 
-    public void entries(List accumulator) {
-      for (int i = 0; i < 16; i++) {
-        INode n = children[i];
-        if (n != null) n.entries(accumulator);
-      }
-    }
-
     public INode assoc(long k, long epoch, IFn f, Object v) {
       int offsetPrime = offset(k, prefix);
 
@@ -172,12 +208,12 @@ public class Nodes {
         INode n = children[idx];
         if (n == null) {
           if (epoch == this.epoch) {
-            children[idx] = new Leaf(k, epoch, v);
+            children[idx] = new Leaf(k, v);
             count = -1;
             return this;
           } else {
             INode[] children = arraycopy();
-            children[idx] = new Leaf(k, epoch, v);
+            children[idx] = new Leaf(k, v);
             return new Branch(prefix, offset, epoch, count, children);
           }
         } else {
@@ -207,7 +243,12 @@ public class Nodes {
         } else {
           INode[] children = arraycopy();
           children[idx] = nPrime;
-          return new Branch(prefix, offset, epoch, count, children);
+          for (int i = 0; i < 16; i++) {
+            if (children[i] != null) {
+              return new Branch(prefix, offset, epoch, count, children);
+            }
+          }
+          return null;
         }
       }
     }
@@ -217,12 +258,12 @@ public class Nodes {
       INode n = children[idx];
       if (n == null) {
         if (epoch == this.epoch) {
-          children[idx] = new Leaf(k, epoch, f.invoke(null));
+          children[idx] = new Leaf(k, f.invoke(null));
           count = -1;
           return this;
         } else {
           INode[] children = arraycopy();
-          children[idx] = new Leaf(k, epoch, f.invoke(null));
+          children[idx] = new Leaf(k, f.invoke(null));
           return new Branch(prefix, offset, epoch, count, children);
         }
       } else {
@@ -307,13 +348,45 @@ public class Nodes {
 
   // leaf node
   public static class Leaf implements INode {
-    public final long key, epoch;
-    public volatile Object value;
+    public final long key;
+    public final Object value;
 
-    public Leaf(long key, long epoch, Object value) {
+    public Leaf(long key, Object value) {
       this.key = key;
-      this.epoch = epoch;
       this.value = value;
+    }
+
+    public Iterator iterator(final IterationType type) {
+      return new Iterator() {
+
+        boolean iterated = false;
+
+        public boolean hasNext() {
+          return !iterated;
+        }
+
+        public Object next() {
+          if (iterated) {
+            throw new NoSuchElementException();
+          } else {
+            iterated = true;
+            switch(type) {
+              case KEYS:
+                return key;
+              case VALS:
+                return value;
+              case ENTRIES:
+                return new clojure.lang.MapEntry(key, value);
+              default:
+                throw new IllegalStateException();
+            }
+          }
+        }
+
+        public void remove() {
+          throw new UnsupportedOperationException();
+        }
+      };
     }
 
     public Object reduce(IFn f, Object init) {
@@ -336,19 +409,10 @@ public class Nodes {
       return node.assoc(key, epoch, invert(f), value);
     }
 
-    public void entries(List accumulator) {
-      accumulator.add(new clojure.lang.MapEntry(key, value));
-    }
-
     public INode assoc(long k, long epoch, IFn f, Object v) {
       if (k == key) {
         v = f == null ? v : f.invoke(value, v);
-        if (this.epoch == epoch) {
-          value = v;
-          return this;
-        } else {
-          return new Leaf(k, epoch, v);
-        }
+        return new Leaf(k, v);
       } else {
         return new Branch(k, offset(k, key), epoch, new INode[16])
                 .assoc(key, epoch, f, value)
@@ -358,7 +422,7 @@ public class Nodes {
 
     public INode dissoc(long k, long epoch) {
       if (key == k) {
-        return new Empty();
+        return null;
       } else {
         return this;
       }
@@ -367,12 +431,7 @@ public class Nodes {
     public INode update(long k, long epoch, IFn f) {
       if (k == key) {
         Object v = f.invoke(value);
-        if (this.epoch == epoch) {
-          value = v;
-          return this;
-        } else {
-          return new Leaf(k, epoch, v);
-        }
+        return new Leaf(k, v);
       } else {
         return this.assoc(k, epoch, null, f.invoke(null));
       }
@@ -387,7 +446,26 @@ public class Nodes {
   // empty node
   public static class Empty implements INode {
 
-    public Empty() {
+    public static Empty EMPTY = new Empty();
+
+    Empty() {
+    }
+
+    public Iterator iterator(IterationType type) {
+        return new Iterator() {
+
+          public boolean hasNext() {
+            return false;
+          }
+
+          public Object next() {
+            throw new NoSuchElementException();
+          }
+
+          public void remove() {
+            throw new UnsupportedOperationException();
+          }
+        };
     }
 
     public Object reduce(IFn f, Object init) {
@@ -410,11 +488,8 @@ public class Nodes {
       return node;
     }
 
-    public void entries(List accumulator) {
-    }
-
     public INode assoc(long k, long epoch, IFn f, Object v) {
-      return new Leaf(k, epoch, v);
+      return new Leaf(k, v);
     }
 
     public INode dissoc(long k, long epoch) {
@@ -422,7 +497,7 @@ public class Nodes {
     }
 
     public INode update(long k, long epoch, IFn f) {
-      return new Leaf(k, epoch, f.invoke(null));
+      return new Leaf(k, f.invoke(null));
     }
 
     public Object get(long k, Object defaultVal) {
