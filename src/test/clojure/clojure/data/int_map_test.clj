@@ -66,6 +66,9 @@
   (prop/for-all [ks (gen/list gen/int)]
     (= (seq (reduce #(conj %1 %2) (i/int-set) ks))
       (seq (sort (distinct ks))))))
+
+(deftest test-contiguous-keys
+  (is (== 1e7 (count (persistent! (reduce #(assoc! %1 %2 nil) (transient (i/int-map)) (range 1e7)))))))
 ;;;
 
 #_(defn view-tree [m]
