@@ -2,7 +2,7 @@
   (:use
     [clojure.test])
   (:require
-    #_[rhizome.viz :as v]
+    [rhizome.viz :as v]
     [clojure.set :as set]
     [clojure.core.reducers :as r]
     [clojure.data.int-map :as i]
@@ -17,6 +17,7 @@
      Nodes
      Nodes$Leaf
      Nodes$Empty
+     Nodes$BinaryBranch
      Nodes$Branch]
     [java.util
      BitSet]))
@@ -34,6 +35,12 @@
     (fn [ks]
       (into (i/int-map) ks))
     (gen/list (gen/tuple gen/int gen/int))))
+
+(def int-set-generator
+  (gen/fmap
+    (fn [ks]
+      (into (i/int-set) ks))
+    (gen/list gen/int)))
 
 (defspec equivalent-update 1e3
   (let [f #(if % (inc %) 1)]
@@ -62,31 +69,55 @@
     (= (keys (reduce #(assoc %1 %2 nil) (i/int-map) ks))
       (seq (sort (distinct ks))))))
 
+(defspec equivalent-reverse-map-order 1e4
+  (prop/for-all [m int-map-generator]
+    (= (seq (reverse m)) (rseq m))))
+
+(defspec equivalent-reverse-set-order 1e4
+  (prop/for-all [s int-set-generator]
+    (= (seq (reverse s)) (rseq s))))
+
 (defspec equivalent-set-order 1e4
   (prop/for-all [ks (gen/list gen/int)]
     (= (seq (reduce #(conj %1 %2) (i/int-set) ks))
       (seq (sort (distinct ks))))))
 
+(defspec equivalent-map-range 1e4
+  (prop/for-all [m int-map-generator
+                 min gen/pos-int
+                 max gen/pos-int]
+    (= (i/range m min max)
+      (select-keys m (->> m keys (filter #(<= min % max)))))))
+
+(defspec equivalent-set-range 1e4
+  (prop/for-all [s int-set-generator
+                 min gen/pos-int
+                 max gen/pos-int]
+    (= (i/range s min max)
+      (->> s (filter #(<= min % max)) set))))
+
 (deftest test-contiguous-keys
   (is (== 1e7 (count (persistent! (reduce #(assoc! %1 %2 nil) (transient (i/int-map)) (range 1e7)))))))
 ;;;
 
-#_(defn view-tree [m]
+(defn view-tree [m]
   (let [r (.root m)]
     (v/view-tree
-      #(instance? Nodes$Branch %)
-      #(remove nil? (.children %))
+      #(or (instance? Nodes$BinaryBranch %) (instance? Nodes$Branch %))
+      #(if (instance? Nodes$BinaryBranch %)
+         [(.a %) (.b %)]
+         (remove nil? (.children %)))
       r
       :node->descriptor (fn [n]
                           {:label (cond
                                     (instance? Nodes$Leaf n)
                                     (str (.key n) "," (.value n))
 
-                                    (instance? Nodes$Empty n)
-                                    ""
+                                    (instance? Nodes$Branch n)
+                                    (str (.offset n))
 
                                     :else
-                                    (str (.offset n)))}))))
+                                    "")}))))
 
 ;;;
 

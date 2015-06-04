@@ -13,7 +13,8 @@ public interface INode {
     }
 
     long count();
-    Iterator iterator(IterationType type);
+    Iterator iterator(IterationType type, boolean reverse);
+    INode range(long min, long max);
 
     INode merge(INode node, long epoch, IFn f);
     INode assoc(long k, long epoch, IFn f, Object v);

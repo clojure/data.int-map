@@ -62,6 +62,142 @@ public class Nodes {
     }
   }
 
+  // 2-way top-level branch
+  public static class BinaryBranch implements INode {
+
+    public INode a, b;
+
+    public BinaryBranch(INode a, INode b) {
+      this.a = a;
+      this.b = b;
+    }
+
+    public long count() {
+      return a.count() + b.count();
+    }
+
+    public Iterator iterator(final IterationType type, final boolean reverse) {
+      return new Iterator() {
+        boolean first = true;
+        Iterator iterator = reverse ? b.iterator(type, reverse) : a.iterator(type, reverse);
+
+        public boolean hasNext() {
+          if (iterator.hasNext()) {
+            return true;
+          }
+
+          if (first) {
+            first = false;
+            iterator = reverse ? a.iterator(type, reverse) : b.iterator(type, reverse);
+          }
+
+          return iterator.hasNext();
+        }
+
+        public Object next() {
+          if (hasNext()) {
+            return iterator.next();
+          } else {
+            throw new NoSuchElementException();
+          }
+        }
+
+        public void remove() {
+          throw new UnsupportedOperationException();
+        }
+      };
+    }
+
+    public INode range(long min, long max) {
+      if (max < 0) {
+        return a.range(min, max);
+      } else if (min >= 0) {
+        return b.range(min, max);
+      } else {
+        return new BinaryBranch(a.range(min, max), b.range(min, max));
+      }
+    }
+
+    public INode merge(INode node, long epoch, IFn f) {
+      if (node instanceof BinaryBranch) {
+        BinaryBranch bin = (BinaryBranch) node;
+        return new BinaryBranch(a.merge(bin.a, epoch, f), b.merge(bin.b, epoch, f));
+      } else if (node instanceof Branch) {
+        Branch branch = (Branch) node;
+        return branch.prefix < 0 ? new BinaryBranch(a.merge(node, epoch, f), b) : new BinaryBranch(a, b.merge(node, epoch, f));
+      } else {
+        return node.merge(this, epoch, invert(f));
+      }
+    }
+
+    public INode assoc(long k, long epoch, IFn f, Object v) {
+      if (k < 0) {
+        INode aPrime = a.assoc(k, epoch, f, v);
+        return a == aPrime ? this : new BinaryBranch(aPrime, b);
+      } else {
+        INode bPrime = b.assoc(k, epoch, f, v);
+        return b == bPrime ? this : new BinaryBranch(a, bPrime);
+      }
+    }
+
+    public INode dissoc(long k, long epoch) {
+      if (k < 0) {
+        INode aPrime = a.dissoc(k, epoch);
+        return aPrime == null
+                ? b
+                : (a == aPrime)
+                ? this
+                : new BinaryBranch(aPrime, b);
+      } else {
+        INode bPrime = b.dissoc(k, epoch);
+        return bPrime == null
+                ? a
+                : (b == bPrime)
+                ? this
+                : new BinaryBranch(a, bPrime);
+      }
+    }
+
+    public INode update(long k, long epoch, IFn f) {
+      if (k < 0) {
+        INode aPrime = a.update(k, epoch, f);
+        return a == aPrime ? this : new BinaryBranch(aPrime, b);
+      } else {
+        INode bPrime = b.update(k, epoch, f);
+        return b == bPrime ? this : new BinaryBranch(a, bPrime);
+      }
+    }
+
+    public Object get(long k, Object defaultVal) {
+      return k < 0 ? a.get(k, defaultVal) : b.get(k, defaultVal);
+    }
+
+    public Object kvreduce(IFn f, Object init) {
+      init = a.kvreduce(f, init);
+      if (RT.isReduced(init)) return init;
+      return b.kvreduce(f, init);
+    }
+
+    public Object reduce(IFn f, Object init) {
+      init = a.reduce(f, init);
+      if (RT.isReduced(init)) return init;
+      return b.reduce(f, init);
+    }
+
+    public Object fold(final long n, final IFn combiner, final IFn reducer, final IFn fjtask, final IFn fjfork, final IFn fjjoin) {
+      if (count() > n) {
+        Object forked = new Callable() {
+          public Object call() throws Exception {
+            return b.fold(n, combiner, reducer, fjtask, fjfork, fjjoin);
+          }
+        };
+        return combiner.invoke(a.fold(n, combiner, reducer, fjtask, fjfork, fjjoin), fjjoin.invoke(fjfork.invoke(fjtask.invoke(forked))));
+      } else {
+        return kvreduce(reducer, combiner.invoke());
+      }
+    }
+  }
+
   // 16-way branch node
 
   public static class Branch implements INode {
@@ -89,8 +225,7 @@ public class Nodes {
     }
 
     public int indexOf(long key) {
-      int index = (int) (key & mask) >>> offset;
-      return offset == 60 ? (key < 0 ? 0 : index+1) : index;
+      return (int) (key & mask) >>> offset;
     }
 
     private INode[] arraycopy() {
@@ -99,17 +234,44 @@ public class Nodes {
       return copy;
     }
 
-    public Iterator iterator(final IterationType type) {
+    private static boolean overlap(long min0, long max0, long min1, long max1) {
+      return min0 <= max1 && max0 >= min1;
+    }
+
+    public INode range(long min, long max) {
+      long nodeMask = ((1 << offset+4) - 1);
+      long nodeMin = prefix & ~nodeMask;
+      long nodeMax = prefix | nodeMask;
+      if (!overlap(min, max, nodeMin, nodeMax)) {
+        return null;
+      }
+
+      INode[] children = new INode[16];
+      long lowerBits = (1 << offset) - 1;
+      for (int i = 0; i < 16; i++) {
+        INode c = this.children[i];
+        if (c != null) {
+          long childMin = ((prefix & ~mask) | (i << offset)) & ~lowerBits;
+          long childMax = childMin | lowerBits;
+          if (overlap(min, max, childMin, childMax)) {
+            children[i] = c.range(min, max);
+          }
+        }
+      }
+      return new Branch(prefix, offset, epoch, children);
+    }
+
+    public Iterator iterator(final IterationType type, final boolean reverse) {
       return new Iterator() {
 
-        private byte idx = -1;
+        private byte idx = (byte)(reverse ? 16 : -1);
         private Iterator iterator = null;
 
         private void advanceToNext() {
-          while (++idx < 16) {
+          while (reverse ? --idx >= 0 : ++idx < 16) {
             INode c = children[idx];
             if (c != null) {
-              iterator = children[idx].iterator(type);
+              iterator = children[idx].iterator(type, reverse);
               return;
             }
           }
@@ -197,7 +359,11 @@ public class Nodes {
       int offsetPrime = offset(k, prefix);
 
       // need a new branch above us both
-      if (offsetPrime > this.offset) {
+      if (prefix < 0 && k >= 0) {
+        return new BinaryBranch(this, new Leaf(k, v));
+      } else if (k < 0 && prefix >= 0) {
+        return new BinaryBranch(new Leaf(k, v), this);
+      } else if (offsetPrime > this.offset) {
         return new Branch(k, offsetPrime, epoch, new INode[16])
                 .merge(this, epoch, null)
                 .assoc(k, epoch, f, v);
@@ -356,7 +522,7 @@ public class Nodes {
       this.value = value;
     }
 
-    public Iterator iterator(final IterationType type) {
+    public Iterator iterator(final IterationType type, boolean reverse) {
       return new Iterator() {
 
         boolean iterated = false;
@@ -389,6 +555,10 @@ public class Nodes {
       };
     }
 
+    public INode range(long min, long max) {
+      return (min <= key && key <= max) ? this : null;
+    }
+
     public Object reduce(IFn f, Object init) {
       return f.invoke(init, new clojure.lang.MapEntry(key, value));
     }
@@ -413,6 +583,10 @@ public class Nodes {
       if (k == key) {
         v = f == null ? v : f.invoke(value, v);
         return new Leaf(k, v);
+      } else if (key < 0 && k >= 0) {
+        return new BinaryBranch(this, new Leaf(k, v));
+      } else if (k < 0 && key >= 0) {
+        return new BinaryBranch(new Leaf(k, v), this);
       } else {
         return new Branch(k, offset(k, key), epoch, new INode[16])
                 .assoc(key, epoch, f, value)
@@ -451,7 +625,11 @@ public class Nodes {
     Empty() {
     }
 
-    public Iterator iterator(IterationType type) {
+    public INode range(long min, long max) {
+      return this;
+    }
+
+    public Iterator iterator(IterationType type, boolean reverse) {
         return new Iterator() {
 
           public boolean hasNext() {

@@ -3,7 +3,7 @@
           which can be found at http://ittc.ku.edu/~andygill/papers/IntMap98.pdf"}
   clojure.data.int-map
   (:refer-clojure
-    :exclude [merge merge-with update])
+    :exclude [merge merge-with update range])
   (:require
     [clojure.core.reducers :as r])
   (:import
@@ -22,6 +22,9 @@
 (defn ^:private default-merge [_ x]
   x)
 
+(definterface IRange
+  (range [^long min ^long max]))
+
 (definterface IRadix
   (mergeWith [b f])
   (update [k f]))
@@ -37,6 +40,13 @@
   [^INode root
    ^long epoch
    meta]
+
+  IRange
+  (range [_ min max]
+    (PersistentIntMap.
+      (or (.range root min max) Nodes$Empty/EMPTY)
+      epoch
+      meta))
 
   IRadix
   (mergeWith [_ b f]
@@ -75,6 +85,10 @@
   clojure.lang.Seqable
   (seq [this]
     (iterator-seq (.iterator this)))
+
+  clojure.lang.Reversible
+  (rseq [_]
+    (iterator-seq (.iterator root INode$IterationType/ENTRIES true)))
 
   r/CollFold
 
@@ -183,7 +197,7 @@
   (entrySet [this]
     (->> this seq set))
   (iterator [this]
-    (.iterator root INode$IterationType/ENTRIES))
+    (.iterator root INode$IterationType/ENTRIES false))
 
   clojure.lang.IPersistentMap
   (assocEx [this k v]
@@ -236,7 +250,7 @@
 
   clojure.lang.Seqable
   (seq [this]
-    (iterator-seq (.iterator root INode$IterationType/ENTRIES)))
+    (iterator-seq (.iterator root INode$IterationType/ENTRIES false)))
 
   Object
   (hashCode [this]
@@ -354,6 +368,11 @@
   ([m k f & args]
      (update! m k #(apply f % args))))
 
+(defn range
+  "Returns a map or set representing all elements within [min, max], inclusive."
+  [x ^long min ^long max]
+  (.range ^IRange x min max))
+
 ;;;
 
 (definline ^:private >> [x n]
@@ -366,11 +385,11 @@
   `(unsigned-bit-shift-right ~x ~n))
 
 (deftype Chunk
-  [^int generation
+  [^int epoch
    ^BitSet bitset])
 
-(defn- ^Chunk bitset-chunk [^long generation log2-chunk-size]
-  (Chunk. generation (BitSet. (<< 1 log2-chunk-size))))
+(defn- ^Chunk bitset-chunk [^long epoch log2-chunk-size]
+  (Chunk. epoch (BitSet. (<< 1 log2-chunk-size))))
 
 (defn- bit-seq [^java.util.BitSet bitset ^long offset]
   (let [cnt (long (.cardinality bitset))
@@ -380,13 +399,23 @@
         (let [set-idx (.nextSetBit bitset set-idx)]
           (aset ary ary-idx (+ offset set-idx))
           (recur (inc ary-idx) (inc set-idx)))))
-    (seq ary)))
+    ary))
+
+(defn- rev-bit-seq [^java.util.BitSet bitset ^long offset]
+  (let [cnt (long (.cardinality bitset))
+        ^longs ary (long-array cnt)]
+    (loop [ary-idx 0, set-idx (.size bitset)]
+      (when (< ary-idx cnt)
+        (let [set-idx (.previousSetBit bitset set-idx)]
+          (aset ary ary-idx (+ offset set-idx))
+          (recur (inc ary-idx) (dec set-idx)))))
+    ary))
 
 (declare bitset ->persistent-int-set ->transient-int-set)
 
 (defmacro ^:private assoc-bitset [x & {:as fields}]
   (let [type (-> &env ^clojure.lang.Compiler$LocalBinding (get x) .getJavaClass)
-        field-names [:log2-chunk-size :generation :cnt :m :meta]]
+        field-names [:log2-chunk-size :epoch :cnt :m :meta]]
     `(new ~type
        ~@(map
            (fn [field-name]
@@ -419,10 +448,49 @@
 
 (deftype PersistentIntSet
   [^byte log2-chunk-size
-   ^int generation
+   ^int epoch
    ^:volatile-mutable ^int cnt
    ^PersistentIntMap m
    meta]
+
+  IRange
+  (range [this min max]
+    (let [min-idx (chunk-idx min log2-chunk-size)
+          max-idx (chunk-idx max log2-chunk-size)
+          m' (.range m min-idx max-idx)
+          min-bits (get m' min-idx)
+          m' (if min-bits
+               (assoc m' min-idx
+                 (Chunk.
+                   epoch
+                   (-> ^Chunk min-bits
+                     ^BitSet (.bitset)
+                     ^BitSet (.clone)
+                     (doto (.set 0 (idx-within-chunk min log2-chunk-size) false)))))
+               m')
+          max-bits (get m' max-idx)
+          m' (if max-bits
+               (assoc m' max-idx
+                 (Chunk.
+                   epoch
+                   (-> ^Chunk max-bits
+                    ^BitSet (.bitset)
+                    ^BitSet (.clone)
+                    (doto (.set (inc (idx-within-chunk max log2-chunk-size)) (<< 1 log2-chunk-size) false)))))
+               m')]
+      (assoc-bitset this
+        :m m'
+        :cnt -1)))
+
+  clojure.lang.Reversible
+  (rseq [_]
+    (when-not (zero? cnt)
+      (let [s (mapcat
+                (fn [[slot ^Chunk v]]
+                  (rev-bit-seq (.bitset v) (<< (long slot) log2-chunk-size)))
+                (rseq m))]
+        (when-not (empty? s)
+          s))))
 
   java.lang.Object
   (hashCode [this]
@@ -501,7 +569,7 @@
             (assoc-bitset this
               :cnt (dec-cnt cnt)
               :m (assoc m slot
-                   (Chunk. generation
+                   (Chunk. epoch
                      (doto ^BitSet (.clone ^BitSet (.bitset chunk))
                        (.set idx false)))))
             this))
@@ -515,19 +583,19 @@
           (assoc-bitset this
             :cnt (inc-cnt cnt)
             :m (assoc m slot
-                 (Chunk. generation
+                 (Chunk. epoch
                    (doto ^BitSet (.clone ^BitSet (.bitset chunk))
                      (.set idx true)))))
           this)
         (assoc-bitset this
           :cnt (inc-cnt cnt)
-          :m (let [^Chunk chunk (bitset-chunk generation log2-chunk-size)]
+          :m (let [^Chunk chunk (bitset-chunk epoch log2-chunk-size)]
                (.set ^BitSet (.bitset chunk) idx true)
                (assoc m slot chunk)))))))
 
 (deftype TransientIntSet
   [^byte log2-chunk-size
-   ^int generation
+   ^int epoch
    ^:volatile-mutable ^int cnt
    ^TransientIntMap m
    meta]
@@ -559,7 +627,7 @@
       (if-let [^Chunk chunk (.valAt m slot nil)]
         (let [idx (idx-within-chunk n log2-chunk-size)]
           (if (.get ^BitSet (.bitset chunk) idx)
-            (if (== (.generation chunk) generation)
+            (if (== (.epoch chunk) epoch)
               (do
                 (.set ^BitSet (.bitset chunk) idx false)
                 (assoc-bitset this :cnt (dec-cnt cnt)))
@@ -567,7 +635,7 @@
                 :cnt (dec-cnt cnt)
                 :m (let [^BitSet bitset (.clone ^BitSet (.bitset chunk))]
                      (.set bitset idx false)
-                     (assoc! m slot (Chunk. generation bitset)))))
+                     (assoc! m slot (Chunk. epoch bitset)))))
             this))
         this)))
   (conj [this n]
@@ -576,7 +644,7 @@
           idx (idx-within-chunk n log2-chunk-size)]
       (if-let [^Chunk chunk (.valAt m slot nil)]
         (if-not (.get ^BitSet (.bitset chunk) idx)
-          (if (== (.generation chunk) generation)
+          (if (== (.epoch chunk) epoch)
             (do
               (.set ^BitSet (.bitset chunk) idx true)
               (assoc-bitset this :cnt (inc-cnt cnt)))
@@ -584,18 +652,18 @@
               :cnt (inc-cnt cnt)
               :m (let [^BitSet bitset (.clone ^BitSet (.bitset chunk))]
                    (.set bitset idx true)
-                   (assoc! m slot (Chunk. generation bitset)))))
+                   (assoc! m slot (Chunk. epoch bitset)))))
           this)
         (assoc-bitset this
           :cnt (inc-cnt cnt)
-          :m (let [^Chunk chunk (bitset-chunk generation log2-chunk-size)]
+          :m (let [^Chunk chunk (bitset-chunk epoch log2-chunk-size)]
                (.set ^BitSet (.bitset chunk) idx true)
                (assoc! m slot chunk)))))))
 
 (defn- ->persistent-int-set [^TransientIntSet bitset ^long cnt]
   (PersistentIntSet.
     (.log2-chunk-size bitset)
-    (.generation bitset)
+    (.epoch bitset)
     cnt
     (persistent! (.m bitset))
     (.meta bitset)))
@@ -603,7 +671,7 @@
 (defn- ->transient-int-set [^PersistentIntSet bitset ^long cnt]
   (TransientIntSet.
     (.log2-chunk-size bitset)
-    (inc (.generation bitset))
+    (inc (.epoch bitset))
     cnt
     (transient (.m bitset))
     (.meta bitset)))
@@ -633,7 +701,7 @@
 (defn- merge-bit-op [bit-set-fn keys-fn ^PersistentIntSet a ^PersistentIntSet b]
   (assert (= (.log2-chunk-size a) (.log2-chunk-size b)))
   (let [log2-chunk-size (.log2-chunk-size a)
-        generation (inc (long (Math/max (.generation a) (.generation b))))
+        epoch (inc (long (Math/max (.epoch a) (.epoch b))))
         m-a (.m a)
         m-b (.m b)
         ks (keys-fn m-a m-b)
@@ -644,7 +712,7 @@
                   (let [^Chunk a (get m-a k)
                         ^Chunk b (get m-b k)]
                     (if (and a b)
-                      (let [^Chunk chunk (Chunk. generation (.clone ^BitSet (.bitset a)))
+                      (let [^Chunk chunk (Chunk. epoch (.clone ^BitSet (.bitset a)))
                             ^BitSet b-a (.bitset chunk)
                             ^BitSet b-b (.bitset b)]
                         (bit-set-fn b-a b-b)
@@ -654,7 +722,7 @@
               ks))]
     (PersistentIntSet.
       log2-chunk-size
-      generation
+      epoch
       -1
       m
       nil)))
@@ -663,14 +731,14 @@
   "Returns the union of two bitsets."
   [^PersistentIntSet a ^PersistentIntSet b]
   (assert (= (.log2-chunk-size a) (.log2-chunk-size b)))
-  (let [generation (inc (long (Math/max (.generation a) (.generation b))))]
+  (let [epoch (inc (long (Math/max (.epoch a) (.epoch b))))]
     (PersistentIntSet.
       (.log2-chunk-size a)
-      generation
+      epoch
       -1
       (merge-with
         (fn [^Chunk a ^Chunk b]
-          (let [chunk (Chunk. generation (.clone ^BitSet (.bitset a)))]
+          (let [chunk (Chunk. epoch (.clone ^BitSet (.bitset a)))]
             (.or ^BitSet (.bitset chunk) (.bitset b))
             chunk))
        (.m a) (.m b))
