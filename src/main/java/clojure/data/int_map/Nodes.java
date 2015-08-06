@@ -114,7 +114,18 @@ public class Nodes {
       } else if (min >= 0) {
         return b.range(min, max);
       } else {
-        return new BinaryBranch(a.range(min, max), b.range(min, max));
+        INode aPrime = a.range(min,max);
+        INode bPrime = b.range(min, max);
+
+        if (aPrime == null && bPrime == null) {
+          return Empty.EMPTY;
+        } else if (aPrime == null) {
+          return bPrime;
+        } else if (bPrime == null) {
+          return aPrime;
+        } else {
+          return new BinaryBranch(aPrime, bPrime);
+        }
       }
     }
 
@@ -321,6 +332,12 @@ public class Nodes {
       if (node instanceof Branch) {
         Branch branch = (Branch) node;
 
+        if (branch.prefix < 0 && this.prefix >= 0) {
+          return new BinaryBranch(branch, this);
+        } else if (branch.prefix >= 0 && this.prefix < 0) {
+          return new BinaryBranch(this, branch);
+        }
+
         // we contain the other node
         if (offset > branch.offset) {
           int idx = indexOf(branch.prefix);
@@ -420,6 +437,14 @@ public class Nodes {
     }
 
     public INode update(long k, long epoch, IFn f) {
+
+      // need a new branch above us both
+      if (prefix < 0 && k >= 0) {
+        return new BinaryBranch(this, new Leaf(k, f.invoke(null)));
+      } else if (k < 0 && prefix >= 0) {
+        return new BinaryBranch(new Leaf(k, f.invoke(null)), this);
+      }
+
       int idx = indexOf(k);
       INode n = children[idx];
       if (n == null) {

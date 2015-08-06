@@ -11,6 +11,7 @@
      BitSet]
     [clojure.data.int_map
      INode
+     IntSet
      Nodes$Empty
      INode$IterationType]))
 
@@ -375,131 +376,30 @@
 
 ;;;
 
-(definline ^:private >> [x n]
-  `(bit-shift-right ~x ~n))
-
-(definline ^:private << [x n]
-  `(bit-shift-left ~x ~n))
-
-(definline ^:private >>> [x n]
-  `(unsigned-bit-shift-right ~x ~n))
-
-(deftype Chunk
-  [^int epoch
-   ^BitSet bitset])
-
-(defn- ^Chunk bitset-chunk [^long epoch log2-chunk-size]
-  (Chunk. epoch (BitSet. (<< 1 log2-chunk-size))))
-
-(defn- bit-seq [^java.util.BitSet bitset ^long offset]
-  (let [cnt (long (.cardinality bitset))
-        ^longs ary (long-array cnt)]
-    (loop [ary-idx 0, set-idx 0]
-      (when (< ary-idx cnt)
-        (let [set-idx (.nextSetBit bitset set-idx)]
-          (aset ary ary-idx (+ offset set-idx))
-          (recur (inc ary-idx) (inc set-idx)))))
-    ary))
-
-(defn- rev-bit-seq [^java.util.BitSet bitset ^long offset]
-  (let [cnt (long (.cardinality bitset))
-        ^longs ary (long-array cnt)]
-    (loop [ary-idx 0, set-idx (.size bitset)]
-      (when (< ary-idx cnt)
-        (let [set-idx (.previousSetBit bitset set-idx)]
-          (aset ary ary-idx (+ offset set-idx))
-          (recur (inc ary-idx) (dec set-idx)))))
-    ary))
-
-(declare bitset ->persistent-int-set ->transient-int-set)
-
-(defmacro ^:private assoc-bitset [x & {:as fields}]
-  (let [type (-> &env ^clojure.lang.Compiler$LocalBinding (get x) .getJavaClass)
-        field-names [:log2-chunk-size :epoch :cnt :m :meta]]
-    `(new ~type
-       ~@(map
-           (fn [field-name]
-             (get fields field-name
-               `(~(symbol (str "." (name field-name))) ~x)))
-           field-names))))
-
-(definline ^:private chunk-idx [n bit-shift]
-  `(>> ~n ~bit-shift))
-
-(definline ^:private idx-within-chunk [n bit-shift]
-  `(bit-and ~n (-> 1 (<< ~bit-shift) dec)))
-
-(definline ^:private dec-cnt [cnt]
-  `(let [cnt# (unchecked-long ~cnt)]
-     (if (== cnt# -1)
-       cnt#
-       (dec cnt#))))
-
-(definline ^:private inc-cnt [cnt]
-  `(let [cnt# (unchecked-long ~cnt)]
-     (if (== cnt# -1)
-       cnt#
-       (inc cnt#))))
-
-(defmacro ^:private compile-if [test then else]
-  (if (eval test)
-    then
-    else))
+(declare ->transient-int-set ->persistent-int-set)
 
 (deftype PersistentIntSet
-  [^byte log2-chunk-size
-   ^int epoch
-   ^:volatile-mutable ^int cnt
-   ^PersistentIntMap m
+  [^IntSet int-set
+   ^long epoch
    meta]
 
   IRange
   (range [this min max]
-    (let [min-idx (chunk-idx min log2-chunk-size)
-          max-idx (chunk-idx max log2-chunk-size)
-          m' (.range m min-idx max-idx)
-          min-bits (get m' min-idx)
-          m' (if min-bits
-               (assoc m' min-idx
-                 (Chunk.
-                   epoch
-                   (-> ^Chunk min-bits
-                     ^BitSet (.bitset)
-                     ^BitSet (.clone)
-                     (doto (.set 0 (idx-within-chunk min log2-chunk-size) false)))))
-               m')
-          max-bits (get m' max-idx)
-          m' (if max-bits
-               (assoc m' max-idx
-                 (Chunk.
-                   epoch
-                   (-> ^Chunk max-bits
-                    ^BitSet (.bitset)
-                    ^BitSet (.clone)
-                    (doto (.set (inc (idx-within-chunk max log2-chunk-size)) (<< 1 log2-chunk-size) false)))))
-               m')]
-      (assoc-bitset this
-        :m m'
-        :cnt -1)))
+    (let [epoch' (inc epoch)]
+      (PersistentIntSet. (.range int-set epoch' min max) epoch' meta)))
 
   clojure.lang.Reversible
   (rseq [_]
-    (when-not (zero? cnt)
-      (let [s (mapcat
-                (fn [[slot ^Chunk v]]
-                  (rev-bit-seq (.bitset v) (<< (long slot) log2-chunk-size)))
-                (rseq m))]
-        (when-not (empty? s)
-          s))))
+    (iterator-seq (.elements int-set 0 true)))
 
   java.lang.Object
   (hashCode [this]
-    (if (zero? cnt)
-      0
-      (->> this
-        (map #(bit-xor (long %) (>>> (long %) 32)))
-        (reduce #(+ (long %1) (long %2))))))
-  (equals [this x] (.equiv this x))
+    (->> this
+      (map #(bit-xor (long %) (unsigned-bit-shift-right (long %) 32)))
+      (reduce +)))
+
+  (equals [this x]
+    (.equiv this x))
 
   clojure.lang.IHashEq
   (hasheq [this]
@@ -515,20 +415,15 @@
 
   clojure.lang.IObj
   (meta [_] meta)
-  (withMeta [this meta] (assoc-bitset this :meta meta))
+  (withMeta [this meta']
+    (PersistentIntSet. int-set epoch meta'))
 
   clojure.lang.IEditableCollection
-  (asTransient [this] (->transient-int-set this cnt))
+  (asTransient [this] (->transient-int-set this))
 
   clojure.lang.Seqable
   (seq [_]
-    (when-not (zero? cnt)
-      (let [s (mapcat
-                (fn [[slot ^Chunk v]]
-                  (bit-seq (.bitset v) (<< (long slot) log2-chunk-size)))
-                m)]
-        (when-not (empty? s)
-          s))))
+    (iterator-seq (.elements int-set 0 false)))
 
   clojure.lang.IFn
   (invoke [this idx]
@@ -544,137 +439,62 @@
         #(contains? x %)
         (seq this))))
   (count [_]
-    (when (== cnt -1)
-      (set! cnt (->> m
-                  vals
-                  (map #(.cardinality ^BitSet (.bitset ^Chunk %)))
-                  (reduce +)
-                  int)))
-    cnt)
+    (.count int-set))
   (empty [_]
-    (PersistentIntSet. log2-chunk-size 0 0 (int-map) nil))
+    (PersistentIntSet. (IntSet. (.leafSize int-set)) 0 nil))
   (contains [_ n]
-    (let [n (long n)
-          slot (chunk-idx n log2-chunk-size)]
-      (if-let [^Chunk chunk (.valAt m slot nil)]
-        (let [idx (idx-within-chunk n log2-chunk-size)]
-          (.get ^BitSet (.bitset chunk) idx))
-        false)))
+    (.contains int-set n))
   (disjoin [this n]
-    (let [n (long n)
-          slot (chunk-idx n log2-chunk-size)]
-      (if-let [^Chunk chunk (.valAt m slot nil)]
-        (let [idx (idx-within-chunk n log2-chunk-size)]
-          (if (.get ^BitSet (.bitset chunk) idx)
-            (assoc-bitset this
-              :cnt (dec-cnt cnt)
-              :m (assoc m slot
-                   (Chunk. epoch
-                     (doto ^BitSet (.clone ^BitSet (.bitset chunk))
-                       (.set idx false)))))
-            this))
-        this)))
+    (let [epoch' (inc epoch)
+          int-set' (.remove int-set epoch' n)]
+      (if (identical? int-set int-set')
+        this
+        (PersistentIntSet. int-set' epoch' meta))))
   (cons [this n]
-    (let [n (long n)
-          slot (chunk-idx n log2-chunk-size)
-          idx (idx-within-chunk n log2-chunk-size)]
-      (if-let [^Chunk chunk (get m slot)]
-        (if-not (.get ^BitSet (.bitset chunk) idx)
-          (assoc-bitset this
-            :cnt (inc-cnt cnt)
-            :m (assoc m slot
-                 (Chunk. epoch
-                   (doto ^BitSet (.clone ^BitSet (.bitset chunk))
-                     (.set idx true)))))
-          this)
-        (assoc-bitset this
-          :cnt (inc-cnt cnt)
-          :m (let [^Chunk chunk (bitset-chunk epoch log2-chunk-size)]
-               (.set ^BitSet (.bitset chunk) idx true)
-               (assoc m slot chunk)))))))
+    (let [epoch' (inc epoch)
+          int-set' (.add int-set epoch' n)]
+      (if (identical? int-set int-set')
+        this
+        (PersistentIntSet. int-set' epoch' meta)))))
 
 (deftype TransientIntSet
-  [^byte log2-chunk-size
+  [^IntSet int-set
    ^int epoch
-   ^:volatile-mutable ^int cnt
-   ^TransientIntMap m
    meta]
 
   clojure.lang.IObj
   (meta [_] meta)
-  (withMeta [this meta] (assoc-bitset this :meta meta))
+  (withMeta [this meta']
+    (TransientIntSet. int-set epoch meta'))
 
   clojure.lang.ITransientSet
   (count [_]
-    (when (== cnt -1)
-      (set! cnt (->> m
-                  vals
-                  (map #(.cardinality ^BitSet (.bitset ^Chunk %)))
-                  (reduce +)
-                  int)))
-    cnt)
-  (persistent [this] (->persistent-int-set this cnt))
+    (.count int-set))
+  (persistent [this] (->persistent-int-set this))
   (contains [_ n]
-    (let [n (long n)
-          slot (chunk-idx n log2-chunk-size)]
-      (if-let [^Chunk chunk (.valAt m slot nil)]
-        (let [idx (idx-within-chunk n log2-chunk-size)]
-          (.get ^BitSet (.bitset chunk) idx))
-        false)))
+    (.contains int-set n))
   (disjoin [this n]
-    (let [n (long n)
-          slot (chunk-idx n log2-chunk-size)]
-      (if-let [^Chunk chunk (.valAt m slot nil)]
-        (let [idx (idx-within-chunk n log2-chunk-size)]
-          (if (.get ^BitSet (.bitset chunk) idx)
-            (if (== (.epoch chunk) epoch)
-              (do
-                (.set ^BitSet (.bitset chunk) idx false)
-                (assoc-bitset this :cnt (dec-cnt cnt)))
-              (assoc-bitset this
-                :cnt (dec-cnt cnt)
-                :m (let [^BitSet bitset (.clone ^BitSet (.bitset chunk))]
-                     (.set bitset idx false)
-                     (assoc! m slot (Chunk. epoch bitset)))))
-            this))
-        this)))
+    (let [int-set' (.remove int-set epoch n)]
+      (if (identical? int-set int-set')
+        this
+        (TransientIntSet. int-set' epoch meta))))
   (conj [this n]
-    (let [n (long n)
-          slot (chunk-idx n log2-chunk-size)
-          idx (idx-within-chunk n log2-chunk-size)]
-      (if-let [^Chunk chunk (.valAt m slot nil)]
-        (if-not (.get ^BitSet (.bitset chunk) idx)
-          (if (== (.epoch chunk) epoch)
-            (do
-              (.set ^BitSet (.bitset chunk) idx true)
-              (assoc-bitset this :cnt (inc-cnt cnt)))
-            (assoc-bitset this
-              :cnt (inc-cnt cnt)
-              :m (let [^BitSet bitset (.clone ^BitSet (.bitset chunk))]
-                   (.set bitset idx true)
-                   (assoc! m slot (Chunk. epoch bitset)))))
-          this)
-        (assoc-bitset this
-          :cnt (inc-cnt cnt)
-          :m (let [^Chunk chunk (bitset-chunk epoch log2-chunk-size)]
-               (.set ^BitSet (.bitset chunk) idx true)
-               (assoc! m slot chunk)))))))
+    (let [int-set' (.add int-set epoch n)]
+      (if (identical? int-set int-set')
+        this
+        (TransientIntSet. int-set' epoch meta)))))
 
-(defn- ->persistent-int-set [^TransientIntSet bitset ^long cnt]
+(defn- ->persistent-int-set [^TransientIntSet set]
   (PersistentIntSet.
-    (.log2-chunk-size bitset)
-    (.epoch bitset)
-    cnt
-    (persistent! (.m bitset))
-    (.meta bitset)))
+    (.int-set set)
+    (.epoch set)
+    (.meta set)))
 
-(defn- ->transient-int-set [^PersistentIntSet bitset ^long cnt]
+(defn- ->transient-int-set [^PersistentIntSet set]
   (TransientIntSet.
-    (.log2-chunk-size bitset)
-    (inc (.epoch bitset))
-    cnt
-    (transient (.m bitset))
-    (.meta bitset)))
+    (.int-set set)
+    (inc (.epoch set))
+    (.meta set)))
 
 ;;;
 
@@ -682,8 +502,7 @@
   "Creates an immutable set which can only store integral values.  This should be used unless elements are densely
    clustered (each element has multiple elements within +/- 1000)."
   ([]
-     ;; 128 bits per chunk
-     (PersistentIntSet. 7 0 0 (int-map) nil))
+     (PersistentIntSet. (IntSet. 128) 0 nil))
   ([s]
      (into (int-set) s)))
 
@@ -691,74 +510,33 @@
   "Creates an immutable set which can only store integral values.  This should be used only if elements are densely
    clustered (each element has multiple elements within +/- 1000)."
   ([]
-     ;; 4096 bits per chunk
-     (PersistentIntSet. 12 0 0 (int-map) nil))
+     (PersistentIntSet. (IntSet. 4096) 0 nil))
   ([s]
      (into (dense-int-set) s)))
-
-;;;
-
-(defn- merge-bit-op [bit-set-fn keys-fn ^PersistentIntSet a ^PersistentIntSet b]
-  (assert (= (.log2-chunk-size a) (.log2-chunk-size b)))
-  (let [log2-chunk-size (.log2-chunk-size a)
-        epoch (inc (long (Math/max (.epoch a) (.epoch b))))
-        m-a (.m a)
-        m-b (.m b)
-        ks (keys-fn m-a m-b)
-        m (persistent!
-            (reduce
-              (fn [m k]
-                (assoc! m k
-                  (let [^Chunk a (get m-a k)
-                        ^Chunk b (get m-b k)]
-                    (if (and a b)
-                      (let [^Chunk chunk (Chunk. epoch (.clone ^BitSet (.bitset a)))
-                            ^BitSet b-a (.bitset chunk)
-                            ^BitSet b-b (.bitset b)]
-                        (bit-set-fn b-a b-b)
-                        chunk)
-                      (or a b (throw (IllegalStateException.)))))))
-              (transient (int-map))
-              ks))]
-    (PersistentIntSet.
-      log2-chunk-size
-      epoch
-      -1
-      m
-      nil)))
 
 (defn union
   "Returns the union of two bitsets."
   [^PersistentIntSet a ^PersistentIntSet b]
-  (assert (= (.log2-chunk-size a) (.log2-chunk-size b)))
   (let [epoch (inc (long (Math/max (.epoch a) (.epoch b))))]
     (PersistentIntSet.
-      (.log2-chunk-size a)
+      (.union ^IntSet (.int-set a) epoch (.int-set b))
       epoch
-      -1
-      (merge-with
-        (fn [^Chunk a ^Chunk b]
-          (let [chunk (Chunk. epoch (.clone ^BitSet (.bitset a)))]
-            (.or ^BitSet (.bitset chunk) (.bitset b))
-            chunk))
-       (.m a) (.m b))
-     nil)))
+      nil)))
 
 (defn intersection
   "Returns the intersection of two bitsets."
-  [a b]
-  (merge-bit-op
-    #(.and ^BitSet %1 %2)
-    (fn [a b]
-      (filter #(contains? b %) (keys a)))
-    a
-    b))
+  [^PersistentIntSet a ^PersistentIntSet b]
+  (let [epoch (inc (long (Math/max (.epoch a) (.epoch b))))]
+    (PersistentIntSet.
+      (.intersection ^IntSet (.int-set a) epoch (.int-set b))
+      epoch
+      nil)))
 
 (defn difference
   "Returns the difference between two bitsets."
-  [a b]
-  (merge-bit-op
-    #(.andNot ^BitSet %1 %2)
-    (fn [a b] (keys a))
-    a
-    b))
+  [^PersistentIntSet a ^PersistentIntSet b]
+  (let [epoch (inc (long (Math/max (.epoch a) (.epoch b))))]
+    (PersistentIntSet.
+      (.difference ^IntSet (.int-set a) epoch (.int-set b))
+      epoch
+      nil)))

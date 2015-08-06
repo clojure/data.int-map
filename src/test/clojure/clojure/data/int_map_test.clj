@@ -84,15 +84,15 @@
 
 (defspec equivalent-map-range 1e4
   (prop/for-all [m int-map-generator
-                 min gen/pos-int
-                 max gen/pos-int]
+                 min gen/int
+                 max gen/int]
     (= (i/range m min max)
       (select-keys m (->> m keys (filter #(<= min % max)))))))
 
 (defspec equivalent-set-range 1e4
   (prop/for-all [s int-set-generator
-                 min gen/pos-int
-                 max gen/pos-int]
+                 min gen/int
+                 max gen/int]
     (= (i/range s min max)
       (->> s (filter #(<= min % max)) set))))
 
@@ -102,6 +102,25 @@
 
 #_(defn view-tree [m]
   (let [r (.root m)]
+    (v/view-tree
+      #(or (instance? Nodes$BinaryBranch %) (instance? Nodes$Branch %))
+      #(if (instance? Nodes$BinaryBranch %)
+         [(.a %) (.b %)]
+         (remove nil? (.children %)))
+      r
+      :node->descriptor (fn [n]
+                          {:label (cond
+                                    (instance? Nodes$Leaf n)
+                                    (str (.key n) "," (.value n))
+
+                                    (instance? Nodes$Branch n)
+                                    (str (.offset n))
+
+                                    :else
+                                    "")}))))
+
+#_(defn view-set [s]
+  (let [r (-> s .int-set .map)]
     (v/view-tree
       #(or (instance? Nodes$BinaryBranch %) (instance? Nodes$Branch %))
       #(if (instance? Nodes$BinaryBranch %)

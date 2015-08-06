@@ -6,7 +6,7 @@
   :source-paths ["src/main/clojure"]
   :test-paths ["src/test/clojure"]
   :dependencies []
-  :profiles {:dev {:dependencies [[org.clojure/clojure "1.7.0-beta2"]
+  :profiles {:dev {:dependencies [[org.clojure/clojure "1.7.0"]
                                   [collection-check "0.1.6"]
                                   [criterium "0.4.3"]
                                   [rhizome "0.2.1"]]}}
