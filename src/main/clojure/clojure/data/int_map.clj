@@ -430,7 +430,7 @@
      (apply merge-with (fn [_ b] b) a b rest)))
 
 (defn update
-  "Updates the value associated with the given key.  If no such key exist, `f` is invoked
+  "Updates the value associated with the given key.  If no such key exists, `f` is invoked
    with `nil`."
   ([m k f]
      (.update ^PersistentIntMap m k f))

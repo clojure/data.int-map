@@ -54,7 +54,7 @@ If `entries` is a data structure that `fold` can split, such as a vector or hash
 | `(into (i/int-map) ...)` | 529 | 187 |
 | `(fold i/merge conj ...)` | 273 | 53 |
 
-As we can see, the int-map implementation is faster in all cases, and an entire order of magnitdue faster when using `fold` on ordered entries.
+As we can see, the int-map implementation is faster in all cases, and an entire order of magnitude faster when using `fold` on ordered entries.
 
 ## Sets
 
