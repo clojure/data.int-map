@@ -2,6 +2,7 @@
   (:use
     [clojure.test])
   (:require
+    [clojure.java.shell :as sh]
     #_[rhizome.viz :as v]
     [clojure.set :as set]
     [clojure.core.reducers :as r]
@@ -21,6 +22,8 @@
      Nodes$Branch]
     [java.util
      BitSet]))
+
+(set! *warn-on-reflection* false)
 
 ;;;
 

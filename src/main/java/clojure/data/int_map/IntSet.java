@@ -157,15 +157,27 @@ public class IntSet implements ISet {
     }
 
     public ISet intersection(long epoch, ISet sv) {
-      return sv.contains(val) ? this : null;
+      return sv == null
+          ? null
+          : sv.contains(val)
+          ? this
+          : null;
     }
 
     public ISet union(long epoch, ISet sv) {
-      return sv.contains(val) ? sv : sv.add(epoch, val);
+      return sv == null
+          ? this
+          : sv.contains(val)
+          ? sv
+          : sv.add(epoch, val);
     }
 
     public ISet difference(long epoch, ISet sv) {
-      return sv.contains(val) ? null : this;
+      return sv == null
+          ? this
+          : sv.contains(val)
+          ? null
+          : this;
     }
   }
 
@@ -336,7 +348,7 @@ public class IntSet implements ISet {
     while (true) {
       long k1 = (Long) e1.key();
       long k2 = (Long) e2.key();
-      if (k1 == k2) {
+      if (k1 == k2 && e1.val() != null && e2.val() != null) {
         node = node.assoc(k1, epoch, null, ((ISet)e1.val()).intersection(epoch, (ISet)e2.val()));
         if (!i1.hasNext() || !i2.hasNext()) break;
         e1 = (MapEntry) i1.next();
@@ -383,16 +395,17 @@ public class IntSet implements ISet {
     while (true) {
       long k1 = (Long) e1.key();
       long k2 = (Long) e2.key();
-      if (k1 == k2) {
+
+      if (k1 == k2 && e1.val() != null && e2.val() != null) {
         node = node.assoc(k1, epoch, null, ((ISet)e1.val()).difference(epoch, (ISet) e2.val()));
         if (!i1.hasNext() || !i2.hasNext()) break;
         e1 = (MapEntry) i1.next();
         e2 = (MapEntry) i2.next();
-      } else if (k1 < k2) {
+      } else if (k1 <= k2 && e1.val() != null) {
         node = node.assoc(k1, epoch, null, e1.val());
         if (!i1.hasNext()) break;
         e1 = (MapEntry) i1.next();
-      } else {
+      } else if (e1.val() != null) {
         if (!i2.hasNext()) {
           node = node.assoc(k1, epoch, null, e1.val());
           break;
