@@ -374,6 +374,8 @@ public class IntSet implements ISet {
             map.merge(s.map, epoch,
                     new AFn() {
                       public Object invoke(Object a, Object b) {
+                        if (a == null) return b;
+                        if (b == null) return a;
                         return ((ISet) a).union(epoch, (ISet) b);
                       }
                     }));
