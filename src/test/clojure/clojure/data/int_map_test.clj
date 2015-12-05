@@ -3,7 +3,7 @@
     [clojure.test])
   (:require
     [clojure.java.shell :as sh]
-    #_[rhizome.viz :as v]
+    [rhizome.viz :as v]
     [clojure.set :as set]
     [clojure.core.reducers :as r]
     [clojure.data.int-map :as i]
@@ -103,7 +103,7 @@
   (is (== 1e7 (count (persistent! (reduce #(assoc! %1 %2 nil) (transient (i/int-map)) (range 1e7)))))))
 ;;;
 
-#_(defn view-tree [m]
+(defn view-tree [m]
   (let [r (.root m)]
     (v/view-tree
       #(or (instance? Nodes$BinaryBranch %) (instance? Nodes$Branch %))
@@ -122,7 +122,7 @@
                                     :else
                                     "")}))))
 
-#_(defn view-set [s]
+(defn view-set [s]
   (let [r (-> s .int-set .map)]
     (v/view-tree
       #(or (instance? Nodes$BinaryBranch %) (instance? Nodes$Branch %))
@@ -143,6 +143,13 @@
 
 ;;;
 
+(defn diff-equals? [set0 set1]
+  (prn (i/difference (i/int-set set0)
+       (i/int-set set1))
+
+    (set/difference set0
+      set1)))
+
 (defn all-set-algebra-operators-equivalent?
   [generator]
   (prop/for-all [a (gen/vector gen/int) b (gen/vector gen/int)]
@@ -156,8 +163,8 @@
         (= (set/union sa sb) (i/union isa isb) (i/union isb isa))
         (= (set/intersection sa sb) (i/intersection isa isb) (i/intersection isb isa))))))
 
-(defspec prop-sparse-all-set-algebra-operators-equivalent 1000
+(defspec prop-sparse-all-set-algebra-operators-equivalent 1e5
   (all-set-algebra-operators-equivalent? i/int-set))
 
-(defspec prop-dense-all-set-algebra-operators-equivalent 1000
+(defspec prop-dense-all-set-algebra-operators-equivalent 1e5
   (all-set-algebra-operators-equivalent? i/dense-int-set))

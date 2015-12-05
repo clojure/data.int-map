@@ -437,12 +437,17 @@ public class Nodes {
     }
 
     public INode update(long k, long epoch, IFn f) {
+      int offsetPrime = offset(k, prefix);
 
       // need a new branch above us both
       if (prefix < 0 && k >= 0) {
         return new BinaryBranch(this, new Leaf(k, f.invoke(null)));
       } else if (k < 0 && prefix >= 0) {
         return new BinaryBranch(new Leaf(k, f.invoke(null)), this);
+      } else if (offsetPrime > this.offset) {
+        return new Branch(k, offsetPrime, epoch, new INode[16])
+                .merge(this, epoch, null)
+                .update(k, epoch, f);
       }
 
       int idx = indexOf(k);

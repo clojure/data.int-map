@@ -407,7 +407,7 @@ public class IntSet implements ISet {
         node = node.assoc(k1, epoch, null, e1.val());
         if (!i1.hasNext()) break;
         e1 = (MapEntry) i1.next();
-      } else if (e1.val() != null) {
+      } else {
         if (!i2.hasNext()) {
           node = node.assoc(k1, epoch, null, e1.val());
           break;

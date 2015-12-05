@@ -9,7 +9,7 @@
   :profiles {:dev {:dependencies [[org.clojure/clojure "1.7.0"]
                                   [collection-check "0.1.6"]
                                   [criterium "0.4.3"]
-                                  [rhizome "0.2.5"]]}}
+                                  [rhizome "0.2.6-SNAPSHOT"]]}}
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
   :java-source-paths ["src/main/java"]
