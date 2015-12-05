@@ -1,4 +1,4 @@
-(defproject org.clojure/data.int-map "0.2.0-SNAPSHOT"
+(defproject org.clojure/data.int-map "0.2.2-SNAPSHOT"
   :description "Set and map data structures optimized for integer keys and elements."
   :url "https://github.com/clojure/data.int-map"
   :license {:name "Eclipse Public License"
