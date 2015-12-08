@@ -350,10 +350,19 @@ public class Nodes {
         } else if (offset < branch.offset) {
           return branch.merge(this, epoch, invert(f));
 
+        } else if (offset(prefix, branch.prefix) > offset) {
+            System.out.println(offset(prefix, branch.prefix) + " " + offset);
+            return new Branch(prefix, offset(prefix, branch.prefix), epoch, new INode[16])
+                .merge(this, epoch, f)
+                .merge(node, epoch, f);
+
           // same level, do a child-wise merge
         } else {
           INode[] children = new INode[16];
           INode[] branchChildren = branch.children;
+          List<INode> above = new ArrayList<INode>();
+          int offset = this.offset;
+
           for (int i = 0; i < 16; i++) {
             INode n = this.children[i];
             INode nPrime = branchChildren[i];
