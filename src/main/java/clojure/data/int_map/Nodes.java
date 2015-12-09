@@ -351,7 +351,6 @@ public class Nodes {
           return branch.merge(this, epoch, invert(f));
 
         } else if (offset(prefix, branch.prefix) > offset) {
-            System.out.println(offset(prefix, branch.prefix) + " " + offset);
             return new Branch(prefix, offset(prefix, branch.prefix), epoch, new INode[16])
                 .merge(this, epoch, f)
                 .merge(node, epoch, f);
