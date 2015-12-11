@@ -27,6 +27,9 @@
 
 ;;;
 
+(def set-int
+  (gen/fmap (fn [[x y]] (+ (* 128 x) y)) (gen/tuple gen/int gen/int)))
+
 (deftest test-map-like
   (check/assert-map-like 1e3 (i/int-map) gen/int gen/int))
 
@@ -43,7 +46,7 @@
   (gen/fmap
     (fn [ks]
       (into (i/int-set) ks))
-    (gen/list gen/int)))
+    (gen/list set-int)))
 
 (defspec equivalent-update 1e3
   (let [f #(if % (inc %) 1)]
@@ -152,7 +155,7 @@
 
 (defn all-set-algebra-operators-equivalent?
   [generator]
-  (prop/for-all [a (gen/vector gen/int) b (gen/vector gen/int)]
+  (prop/for-all [a (gen/vector set-int) b (gen/vector set-int)]
     (let [sa (set a)
           sb (set b)
           isa (generator a)

@@ -179,6 +179,7 @@ public class IntSet implements ISet {
           ? null
           : this;
     }
+
   }
 
   public final INode map;

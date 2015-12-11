@@ -331,11 +331,18 @@ public class Nodes {
     public INode merge(INode node, long epoch, IFn f) {
       if (node instanceof Branch) {
         Branch branch = (Branch) node;
+        int offsetPrime = offset(prefix, branch.prefix);
 
         if (branch.prefix < 0 && this.prefix >= 0) {
           return new BinaryBranch(branch, this);
         } else if (branch.prefix >= 0 && this.prefix < 0) {
           return new BinaryBranch(this, branch);
+        }
+
+        if (offsetPrime > offset && offsetPrime > branch.offset) {
+            return new Branch(prefix, offset(prefix, branch.prefix), epoch, new INode[16])
+                .merge(this, epoch, f)
+                .merge(node, epoch, f);
         }
 
         // we contain the other node
@@ -346,35 +353,30 @@ public class Nodes {
           children[idx] = n != null ? n.merge(node, epoch, f) : node;
           return new Branch(prefix, offset, epoch, children);
 
-          // the other node contains us
-        } else if (offset < branch.offset) {
-          return branch.merge(this, epoch, invert(f));
-
-        } else if (offset(prefix, branch.prefix) > offset) {
-            return new Branch(prefix, offset(prefix, branch.prefix), epoch, new INode[16])
-                .merge(this, epoch, f)
-                .merge(node, epoch, f);
-
-          // same level, do a child-wise merge
-        } else {
-          INode[] children = new INode[16];
-          INode[] branchChildren = branch.children;
-          List<INode> above = new ArrayList<INode>();
-          int offset = this.offset;
-
-          for (int i = 0; i < 16; i++) {
-            INode n = this.children[i];
-            INode nPrime = branchChildren[i];
-            if (n == null) {
-              children[i] = nPrime;
-            } else if (nPrime == null) {
-              children[i] = n;
-            } else {
-              children[i] = n.merge(nPrime, epoch, f);
-            }
-          }
-          return new Branch(prefix, offset, epoch, children);
         }
+
+        if (offset < branch.offset) {
+          return branch.merge(this, epoch, invert(f));
+        }
+
+        INode[] children = new INode[16];
+        INode[] branchChildren = branch.children;
+        List<INode> above = new ArrayList<INode>();
+        int offset = this.offset;
+
+        for (int i = 0; i < 16; i++) {
+          INode n = this.children[i];
+          INode nPrime = branchChildren[i];
+          if (n == null) {
+            children[i] = nPrime;
+          } else if (nPrime == null) {
+            children[i] = n;
+          } else {
+            children[i] = n.merge(nPrime, epoch, f);
+          }
+        }
+        return new Branch(prefix, offset, epoch, children);
+
       } else {
         return node.merge(this, epoch, invert(f));
       }
