@@ -1,5 +1,5 @@
 ```clj
-[org.clojure/data.int-map "0.2.1"]
+[org.clojure/data.int-map "0.2.2"]
 ```
 
 This library has special implementations of immutable maps and sets, optimized for integer keys.  They are both faster in both updates and lookups than normal Clojure data structures, but also more memory efficient, sometimes significantly.
