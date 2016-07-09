@@ -3,7 +3,7 @@
     [clojure.test])
   (:require
     [clojure.java.shell :as sh]
-    #_[rhizome.viz :as v]
+    [rhizome.viz :as v]
     [clojure.set :as set]
     [clojure.core.reducers :as r]
     [clojure.data.int-map :as i]
@@ -27,26 +27,27 @@
 
 ;;;
 
-(def set-int
-  (gen/fmap (fn [[x y]] (+ (* 128 x) y)) (gen/tuple gen/int gen/int)))
+(def map-int
+  (->> (gen/tuple gen/int (gen/choose 0 63))
+    (gen/fmap (fn [[x y]] (bit-shift-left x y)))))
 
 (deftest test-map-like
-  (check/assert-map-like 1e3 (i/int-map) gen/int gen/int))
+  (check/assert-map-like 1e3 (i/int-map) map-int gen/int))
 
 (deftest test-set-like
-  (check/assert-set-like 1e3 (i/int-set) gen/int))
+  (check/assert-set-like 1e3 (i/int-set) map-int))
 
 (def int-map-generator
   (gen/fmap
     (fn [ks]
       (into (i/int-map) ks))
-    (gen/list (gen/tuple gen/int gen/int))))
+    (gen/list (gen/tuple map-int gen/int))))
 
 (def int-set-generator
   (gen/fmap
     (fn [ks]
       (into (i/int-set) ks))
-    (gen/list set-int)))
+    (gen/list map-int)))
 
 (defspec equivalent-update 1e3
   (let [f #(if % (inc %) 1)]
@@ -106,7 +107,7 @@
   (is (== 1e7 (count (persistent! (reduce #(assoc! %1 %2 nil) (transient (i/int-map)) (range 1e7)))))))
 ;;;
 
-#_(defn view-tree [m]
+(defn view-tree [m]
   (let [r (.root m)]
     (v/view-tree
       #(or (instance? Nodes$BinaryBranch %) (instance? Nodes$Branch %))
@@ -155,7 +156,7 @@
 
 (defn all-set-algebra-operators-equivalent?
   [generator]
-  (prop/for-all [a (gen/vector set-int) b (gen/vector set-int)]
+  (prop/for-all [a (gen/vector map-int) b (gen/vector map-int)]
     (let [sa (set a)
           sb (set b)
           isa (generator a)

@@ -396,7 +396,7 @@
   (hashCode [this]
     (->> this
       (map #(bit-xor (long %) (unsigned-bit-shift-right (long %) 32)))
-      (reduce +)))
+      (reduce +')))
 
   (equals [this x]
     (.equiv this x))

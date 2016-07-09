@@ -221,7 +221,7 @@ public class Nodes {
       this.prefix = prefix;
       this.offset = offset;
       this.epoch = epoch;
-      this.mask = 0xf << offset;
+      this.mask = 0xfL << offset;
       this.count = count;
       this.children = children;
     }
@@ -230,13 +230,13 @@ public class Nodes {
       this.prefix = prefix;
       this.offset = offset;
       this.epoch = epoch;
-      this.mask = 0xf << offset;
+      this.mask = 0xfL << offset;
       this.count = -1;
       this.children = children;
     }
 
     public int indexOf(long key) {
-      return (int) (key & mask) >>> offset;
+      return (int) ((key & mask) >>> offset);
     }
 
     private INode[] arraycopy() {
@@ -246,26 +246,28 @@ public class Nodes {
     }
 
     private static boolean overlap(long min0, long max0, long min1, long max1) {
-      return min0 <= max1 && max0 >= min1;
+      return (max1 - min0) >= 0 && (max0 - min1) >= 0;
     }
 
     public INode range(long min, long max) {
-      long nodeMask = ((1 << offset+4) - 1);
-      long nodeMin = prefix & ~nodeMask;
-      long nodeMax = prefix | nodeMask;
-      if (!overlap(min, max, nodeMin, nodeMax)) {
-        return null;
+      if (offset < 60) {
+        long nodeMask = ((1L << (offset+4)) - 1);
+        long nodeMin = prefix & ~nodeMask;
+        long nodeMax = prefix | nodeMask;
+        if (!overlap(min, max, nodeMin, nodeMax)) {
+          return null;
+        }
       }
 
       INode[] children = new INode[16];
-      long lowerBits = (1 << offset) - 1;
-      for (int i = 0; i < 16; i++) {
-        INode c = this.children[i];
+      long lowerBits = (1L << offset) - 1;
+      for (long i = 0; i < 16; i++) {
+        INode c = this.children[(int)i];
         if (c != null) {
           long childMin = ((prefix & ~mask) | (i << offset)) & ~lowerBits;
           long childMax = childMin | lowerBits;
           if (overlap(min, max, childMin, childMax)) {
-            children[i] = c.range(min, max);
+            children[(int)i] = c.range(min, max);
           }
         }
       }
