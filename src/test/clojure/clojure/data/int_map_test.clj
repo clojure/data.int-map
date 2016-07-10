@@ -107,7 +107,7 @@
   (is (== 1e7 (count (persistent! (reduce #(assoc! %1 %2 nil) (transient (i/int-map)) (range 1e7)))))))
 ;;;
 
-(defn view-tree [m]
+#_(defn view-tree [m]
   (let [r (.root m)]
     (v/view-tree
       #(or (instance? Nodes$BinaryBranch %) (instance? Nodes$Branch %))
