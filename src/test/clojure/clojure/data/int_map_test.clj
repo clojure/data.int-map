@@ -3,7 +3,7 @@
     [clojure.test])
   (:require
     [clojure.java.shell :as sh]
-    [rhizome.viz :as v]
+    #_[rhizome.viz :as v]
     [clojure.set :as set]
     [clojure.core.reducers :as r]
     [clojure.data.int-map :as i]
