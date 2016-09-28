@@ -145,6 +145,91 @@
                                     :else
                                     "")}))))
 
+(defn get-field [field x]
+  (let [field (name field)]
+    (-> x
+      class
+      (.getDeclaredField field)
+      (doto (.setAccessible true))
+      (.get x))))
+
+(defn tree-hierarchy [m]
+  (condp instance? m
+    clojure.lang.PersistentHashMap
+    (->> m
+      (get-field :root)
+      tree-hierarchy)
+
+    clojure.lang.PersistentHashMap$BitmapIndexedNode
+    (let [ary (get-field :array m)]
+      (concat
+        (->> ary
+          (partition 2)
+          (map first)
+          (remove nil?))
+        (->> ary
+          (partition 2)
+          (filter #(nil? (first %)))
+          (map second)
+          (remove nil?)
+          (map tree-hierarchy))))
+
+    clojure.lang.PersistentHashMap$ArrayNode
+    (->> m
+      (get-field :array)
+      (remove nil?)
+      (map tree-hierarchy))
+
+    clojure.lang.PersistentHashMap$HashCollisionNode
+    (->> m
+      (get-field :array)
+      (partition 2)
+      (map first))
+
+    clojure.data.int_map.PersistentIntMap
+    (->> m
+      (get-field :root)
+      tree-hierarchy)
+
+    clojure.data.int_map.Nodes$BinaryBranch
+    (->> [(get-field :left m) (get-field :right m)]
+      (remove nil?)
+      (map tree-hierarchy))
+
+    clojure.data.int_map.Nodes$Branch
+    (->> m
+      (get-field :children)
+      (remove nil?)
+      (map tree-hierarchy))
+
+    clojure.data.int_map.Nodes$Leaf
+    (get-field :key m)
+
+    m))
+
+(defn singly-linked-nodes [tree]
+  (concat
+    (->> tree
+      (filter #(and (seq? %) (= 1 (count %)))))
+    (->> tree
+      (filter #(and (seq? %) (not= 1 (count %))))
+      (mapcat singly-linked-nodes))))
+
+(defn depths
+  ([tree]
+   (depths 0 tree))
+  ([d tree]
+   (concat
+     (->> tree
+       (remove seq?)
+       (map (constantly d)))
+     (->> tree
+       (filter seq?)
+       (mapcat #(depths (inc d) %))))))
+
+(defn mean [s]
+  (double (/ (reduce + s) (count s))))
+
 ;;;
 
 (defn diff-equals? [set0 set1]

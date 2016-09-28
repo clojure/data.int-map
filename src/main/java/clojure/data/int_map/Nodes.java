@@ -285,18 +285,20 @@ public class Nodes {
             INode c = children[idx];
             if (c != null) {
               iterator = children[idx].iterator(type, reverse);
-              return;
+              if (iterator.hasNext()) {
+                return;
+              }
             }
           }
           iterator = null;
         }
 
         public boolean hasNext() {
-          if (iterator != null && iterator.hasNext()) {
-            return true;
-          }
-          advanceToNext();
-          return iterator != null;
+            if (iterator != null && iterator.hasNext()) {
+                return true;
+            }
+            advanceToNext();
+            return iterator != null;
         }
 
         public Object next() {

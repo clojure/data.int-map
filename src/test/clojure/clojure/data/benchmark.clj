@@ -64,7 +64,28 @@
         r (java.util.Random.)]
     (println "\nget (sorted-map)")
     (c/quick-bench
-      (get m 1000))))
+      (get m 1000)))
+
+  (let [m1 (into (i/int-map) entries)
+        m2 (into (i/int-map) entries)
+        r (java.util.Random.)]
+    (println "\n= (int-map, int-map)")
+    (c/quick-bench
+     (= m1 m2)))
+
+  (let [m1 (into (i/int-map) entries)
+        m2 (into (hash-map) entries)
+        r (java.util.Random.)]
+    (println "\n= (int-map, hash-map)")
+    (c/quick-bench
+     (= m1 m2)))
+
+  (let [m1 (into (hash-map) entries)
+        m2 (into (hash-map) entries)
+        r (java.util.Random.)]
+    (println "\n= (hash-map, hash-map)")
+    (c/quick-bench
+     (= m1 m2))))
 
 ;;;
 
