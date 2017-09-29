@@ -93,14 +93,12 @@
       (instance? PersistentIntMap x)
       (loop [it1 (.iterator this)
              it2 (.iterator ^PersistentIntMap x)]
-        (if (and (.hasNext it1) (.hasNext it2))
+        (if (.hasNext it1)
           (let [^Map$Entry e1 (.next it1)
                 ^Map$Entry e2 (.next it2)]
-            (if (and e1 e2)
-              (if (and (= (.getKey e1) (.getKey e2))
-                       (= (Util/equiv (.getValue e1) (.getValue e2))))
-                (recur it1 it2)
-                false)
+            (if (and (Util/equiv (.getKey e1) (.getKey e2))
+                  (Util/equiv (.getValue e1) (.getValue e2)))
+              (recur it1 it2)
               false))
           true))
 
@@ -108,11 +106,9 @@
       (loop [it (.iterator this)]
         (if (.hasNext it)
           (let [^Map$Entry e (.next it)]
-            (if e
-              (if (and (.containsKey ^Map x (.getKey e))
-                       (Util/equiv (.getValue e) (.get ^Map x (.getKey e))))
-                (recur it)
-                false)
+            (if (and (.containsKey ^Map x (.getKey e))
+                  (Util/equiv (.getValue e) (.get ^Map x (.getKey e))))
+              (recur it)
               false))
           true))))
 
@@ -193,11 +189,9 @@
         (if (and (.hasNext it1) (.hasNext it2))
           (let [^Map$Entry e1 (.next it1)
                 ^Map$Entry e2 (.next it2)]
-            (if (and e1 e2)
-              (if (and (= (.getKey e1) (.getKey e2))
-                       (= (Util/equals (.getValue e1) (.getValue e2))))
-                (recur it1 it2)
-                false)
+            (if (and (Util/equals (.getKey e1) (.getKey e2))
+                  (Util/equals (.getValue e1) (.getValue e2)))
+              (recur it1 it2)
               false))
           true))
 
@@ -500,7 +494,7 @@
 
   clojure.lang.IFn
   (invoke [this idx]
-    (when (contains? this idx)
+    (when (.contains this idx)
       idx))
 
   clojure.lang.IPersistentSet
