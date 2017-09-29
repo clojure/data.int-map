@@ -536,7 +536,7 @@
 
   clojure.lang.IFn
   (invoke [this idx]
-    (when (contains? this idx)
+    (when (.contains this idx)
       idx))
 
   clojure.lang.ITransientSet
