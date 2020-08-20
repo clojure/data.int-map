@@ -1,1 +1,391 @@
-init
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>clojure.data.int-map - data.int-map 1.1.0-SNAPSHOT API documentation</title>
+    <link rel="icon" href="static/favicon.png" />
+    <link rel="shortcut icon" href="static/favicon.png" />
+    <link rel="stylesheet" href="static/clojure.css" type="text/css" media="all" />
+    <link rel="stylesheet" href="static/wiki.css" type="text/css" media="all" />
+    <link rel="stylesheet" href="static/internal.css" type="text/css" media="all" />
+    <style>.menuWrapper{height: 36px;}</style>
+  </head>
+<!--
+This document was auto-generated from the source by the clojure autodoc system.
+To report errors or ask questions about the overall documentation structure, formatting,
+etc., contact Tom Faulhaber (google mail name: tomfaulhaber).
+For errors in the documentation of a particular namespace, contact the author of that
+namespace.
+-->
+  <body>
+    <div id="AllContentContainer">
+      <div id="Header">
+	<a href="index.html" id="Logo"><img src="static/clojure-icon.gif" width="100" height="100" alt="Clojure" /></a>
+	<h1><a href="index.html" id="page-header" title="page header title">data.int-map API Reference</a></h1>
+      </div>
+      <div id="leftcolumn"><div style="text-align: center;"></div>
+<div class="menu">
+  <div class="WikiCustomNav WikiElement wiki">
+    <span class="toc-header"><span id="project-name">data.int-map</span> <span id="version">1.1.0-SNAPSHOT</span> API</span><br />
+    <ul>
+      <li><a href="index.html" class="wiki_link">Overview</a></li>
+      <li><a href="api-index.html" class="wiki_link">API Index</a></li>
+    </ul>
+    
+    
+    <a class="wiki_link" href="https://clojure.org">Clojure Home</a>
+  </div>
+</div>
+</div>
+      <div id="rightcolumn">
+	<div id="Content">
+	  <div class="contentBox"><div class="innerContentBox">
+              <div class="wiki wikiPage" id="content_view">
+                <div id="right-sidebar"><div id="toc">
+  <h1 class="nopad">Table of Contents</h1>
+  <div class="toc-section" style="margin-left: 1em;">
+    <a style="margin-top: 3px;" href="#toc0">Overview</a>
+    
+  </div><div class="toc-section" style="margin-left: 1em;">
+    <a style="margin-top: 3px;" href="#"></a>
+    
+  </div><div class="toc-section" style="margin-left: 1em;">
+    <a style="margin-top: 3px;" href="#type-section">Types</a>
+    <div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/PersistentIntMap" class="toc-entry-anchor">PersistentIntMap</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/PersistentIntSet" class="toc-entry-anchor">PersistentIntSet</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/TransientIntMap" class="toc-entry-anchor">TransientIntMap</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/TransientIntSet" class="toc-entry-anchor">TransientIntSet</a>
+      
+    </div>
+  </div><div class="toc-section" style="margin-left: 1em;">
+    <a style="margin-top: 3px;" href="#var-section">Vars and Functions</a>
+    <div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/-&gt;PersistentIntMap" class="toc-entry-anchor">-&gt;PersistentIntMap</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/-&gt;PersistentIntSet" class="toc-entry-anchor">-&gt;PersistentIntSet</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/-&gt;TransientIntMap" class="toc-entry-anchor">-&gt;TransientIntMap</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/-&gt;TransientIntSet" class="toc-entry-anchor">-&gt;TransientIntSet</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/dense-int-set" class="toc-entry-anchor">dense-int-set</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/difference" class="toc-entry-anchor">difference</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/int-map" class="toc-entry-anchor">int-map</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/int-set" class="toc-entry-anchor">int-set</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/intersection" class="toc-entry-anchor">intersection</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/merge" class="toc-entry-anchor">merge</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/merge-with" class="toc-entry-anchor">merge-with</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/range" class="toc-entry-anchor">range</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/union" class="toc-entry-anchor">union</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/update" class="toc-entry-anchor">update</a>
+      
+    </div><div class="toc-entry" style="margin-left: 1em;">
+      <a href="#clojure.data.int-map/update!" class="toc-entry-anchor">update!</a>
+      
+    </div>
+  </div><div class="toc-section" style="margin-left: 1em;">
+    <a style="margin-top: 3px;" href="#"></a>
+    
+  </div>
+</div>
+</div>
+                <div id="content-tag"><h1 id="overview">API for <span id="clojure.data.int-map">clojure.data.int-map</span>
+  - <span id="header-project">data.int-map</span> <span id="header-version">1.1.0-SNAPSHOT</span><span id="header-status-block"> (<span id="header-status">in development</span>)</span>
+  </h1>
+
+<br />Full namespace name: <span id="long-name">clojure.data.int-map</span>
+<p></p>
+<h2>Overview</h2>
+<div id="home-page">Project home page is <a href="https://github.com/clojure/data.int-map/">https://github.com/clojure/data.int-map/</a></div>
+<pre id="namespace-docstr">An adaptation of Okasaki and Gill's "Fast Mergeable Integer Maps`",
+which can be found at <a href="http://ittc.ku.edu/~andygill/papers/IntMap98.pdf">http://ittc.ku.edu/~andygill/papers/IntMap98.pdf</a></pre>
+
+
+<br />
+
+
+<div id="type-section">
+  <p></p>
+  <h2>Types</h2>
+  <div id="type-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/PersistentIntMap">PersistentIntMap</h2>
+    <span id="type-type">type</span><br />
+    <pre id="type-docstr"></pre>
+    Fields: <span id="type-fields">[root epoch meta]</span><br />
+    Protocols: <span id="type-protocols">clojure.core.protocols/CollReduce, clojure.core.protocols/IKVReduce, clojure.core.reducers/CollFold</span><br />
+    Interfaces: <span id="type-interfaces">clojure.data.int_map.IRadix, clojure.data.int_map.IRange, clojure.lang.Associative, clojure.lang.Counted, clojure.lang.IEditableCollection, clojure.lang.IFn, clojure.lang.IHashEq, clojure.lang.ILookup, clojure.lang.IObj, clojure.lang.IPersistentCollection, clojure.lang.IPersistentMap, clojure.lang.MapEquivalence, clojure.lang.Reversible, clojure.lang.Seqable, java.util.Map</span><br />
+  </div><div id="type-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/PersistentIntSet">PersistentIntSet</h2>
+    <span id="type-type">type</span><br />
+    <pre id="type-docstr"></pre>
+    Fields: <span id="type-fields">[int-set epoch meta]</span><br />
+    Protocols: <span id="type-protocols"></span><br />
+    Interfaces: <span id="type-interfaces">clojure.data.int_map.IRange, clojure.lang.IEditableCollection, clojure.lang.IFn, clojure.lang.IHashEq, clojure.lang.IObj, clojure.lang.IPersistentSet, clojure.lang.Reversible, clojure.lang.Seqable, java.util.Set</span><br />
+  </div><div id="type-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/TransientIntMap">TransientIntMap</h2>
+    <span id="type-type">type</span><br />
+    <pre id="type-docstr"></pre>
+    Fields: <span id="type-fields">[root epoch meta]</span><br />
+    Protocols: <span id="type-protocols"></span><br />
+    Interfaces: <span id="type-interfaces">clojure.data.int_map.IRadix, clojure.lang.Associative, clojure.lang.Counted, clojure.lang.IFn, clojure.lang.ILookup, clojure.lang.IObj, clojure.lang.ITransientMap, clojure.lang.MapEquivalence, clojure.lang.Seqable</span><br />
+  </div><div id="type-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/TransientIntSet">TransientIntSet</h2>
+    <span id="type-type">type</span><br />
+    <pre id="type-docstr"></pre>
+    Fields: <span id="type-fields">[int-set epoch meta]</span><br />
+    Protocols: <span id="type-protocols"></span><br />
+    Interfaces: <span id="type-interfaces">clojure.lang.IFn, clojure.lang.IObj, clojure.lang.ITransientSet</span><br />
+  </div>
+</div>
+<div id="var-section">
+  <p></p>
+  <h2>Public Variables and Functions</h2>
+  <div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/-&gt;PersistentIntMap">-&gt;PersistentIntMap</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (-&gt;PersistentIntMap root epoch meta)
+</pre>
+    <pre id="var-docstr">Positional factory function for class clojure.data.int_map.PersistentIntMap.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L43">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/-&gt;PersistentIntSet">-&gt;PersistentIntSet</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (-&gt;PersistentIntSet int-set epoch meta)
+</pre>
+    <pre id="var-docstr">Positional factory function for class clojure.data.int_map.PersistentIntSet.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L448">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/-&gt;TransientIntMap">-&gt;TransientIntMap</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (-&gt;TransientIntMap root epoch meta)
+</pre>
+    <pre id="var-docstr">Positional factory function for class clojure.data.int_map.TransientIntMap.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L291">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/-&gt;TransientIntSet">-&gt;TransientIntSet</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (-&gt;TransientIntSet int-set epoch meta)
+</pre>
+    <pre id="var-docstr">Positional factory function for class clojure.data.int_map.TransientIntSet.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L527">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/dense-int-set">dense-int-set</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (dense-int-set)
+       (dense-int-set s)
+</pre>
+    <pre id="var-docstr">Creates an immutable set which can only store integral values.  This should be used only if elements are densely
+clustered (each element has multiple elements within +/- 1000).</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L581">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/difference">difference</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (difference a b)
+</pre>
+    <pre id="var-docstr">Returns the difference between two bitsets.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L607">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/int-map">int-map</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (int-map)
+       (int-map a b)
+       (int-map a b &amp; rest)
+</pre>
+    <pre id="var-docstr">Creates an integer map that can only have non-negative integers as keys.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L391">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/int-set">int-set</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (int-set)
+       (int-set s)
+</pre>
+    <pre id="var-docstr">Creates an immutable set which can only store integral values.  This should be used unless elements are densely
+clustered (each element has multiple elements within +/- 1000).</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L573">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/intersection">intersection</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (intersection a b)
+</pre>
+    <pre id="var-docstr">Returns the intersection of two bitsets.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L598">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/merge">merge</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (merge)
+       (merge a b)
+       (merge a b &amp; rest)
+</pre>
+    <pre id="var-docstr">Merges together two int-maps, giving precedence to values from the right-most map.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L415">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/merge-with">merge-with</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (merge-with f)
+       (merge-with f a b)
+       (merge-with f a b &amp; rest)
+</pre>
+    <pre id="var-docstr">Merges together two int-maps, using `f` to resolve value conflicts.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L400">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/range">range</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (range x min max)
+</pre>
+    <pre id="var-docstr">Returns a map or set representing all elements within [min, max], inclusive.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L439">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/union">union</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (union a b)
+</pre>
+    <pre id="var-docstr">Returns the union of two bitsets.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L589">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/update">update</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (update m k f)
+       (update m k f &amp; args)
+</pre>
+    <pre id="var-docstr">Updates the value associated with the given key.  If no such key exist, `f` is invoked
+with `nil`.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L424">Source</a>
+  </div><div id="var-entry">
+    <br />
+    <hr />
+    <h2 id="clojure.data.int-map/update!">update!</h2>
+    <span id="var-type">function</span><br />
+    <pre id="var-usage">Usage: (update! m k f)
+       (update! m k f &amp; args)
+</pre>
+    <pre id="var-docstr">A transient variant of `update`.</pre>
+    <pre id="var-specs"></pre>
+    
+    
+    <a id="var-source" href="https://github.com/clojure/data.int-map/blob/2d5d0e540dc2c3fa021ba95a593539c26e482d3d/src/main/clojure/clojure/data/int_map.clj#L432">Source</a>
+  </div>
+</div>
+
+
+</div>
+              </div>
+            </div>
+          </div>
+	</div>
+	<div id="foot">
+	  <div id="copyright" style="text-align: center;">Copyright 2007-2019 by Rich Hickey and the various contributors</div>
+	</div>
+      </div>
+      <div id="DesignedBy">Logo &amp; site design by <a href="http://www.tomhickey.com" title="Visit Tom Hickey's website.">Tom Hickey</a>.<br />
+      Clojure auto-documentation system by Tom Faulhaber.</div>
+    </div>
+    <!-- /AllContentContainer -->
+  </body>
+
+</html>
