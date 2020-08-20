@@ -1,5 +1,5 @@
 ```clj
-[org.clojure/data.int-map "0.2.4"]
+[org.clojure/data.int-map "1.0.0"]
 ```
 
 This library has special implementations of immutable maps and sets, optimized for integer keys.  They are both faster in both updates and lookups than normal Clojure data structures, but also more memory efficient, sometimes significantly.
@@ -103,6 +103,6 @@ have signed the Clojure Contributor Agreement.
 
 ## License
 
-Copyright © 2015 Zach Tellman, Rich Hickey and contributors
+Copyright © 2015-2020 Zach Tellman, Rich Hickey and contributors
 
 Distributed under the Eclipse Public License, the same as Clojure.
