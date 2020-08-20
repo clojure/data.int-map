@@ -17,7 +17,7 @@
   <parent>
     <groupId>org.clojure</groupId>
     <artifactId>pom.contrib</artifactId>
-    <version>0.2.2</version>
+    <version>1.0.0</version>
   </parent>
 
   <developers>
@@ -35,7 +35,7 @@
   </scm>
 
   <properties>
-    <clojure.version>1.6.0</clojure.version>
+    <clojure.version>1.7.0</clojure.version>
     <clojure.warnOnReflection>true</clojure.warnOnReflection>
   </properties>
 
@@ -82,6 +82,12 @@
   </build>
 
   <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+      <version>${clojure.version}</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.codehaus.jsr166-mirror</groupId>
       <artifactId>jsr166y</artifactId>
