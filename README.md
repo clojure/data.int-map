@@ -1,3 +1,8 @@
+[CLI/`deps.edn`](https://clojure.org/reference/deps_and_cli) dependency information:
+```clojure
+org.clojure/data.int-map {:mvn/version "1.0.0"}
+```
+[Leiningen](https://github.com/technomancy/leiningen):
 ```clj
 [org.clojure/data.int-map "1.0.0"]
 ```
