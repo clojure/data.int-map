@@ -20,7 +20,7 @@ nil
 
 These maps support transient/persistent semantics, and also provide special `merge`, `merge-with`, `update`, and `update!` methods that provide significantly faster performance than their normal Clojure counterparts.  The elements must be in the range `[Long/MIN_VALUE, Long/MAX_VALUE]`.  They can be used to represent normal maps which have integral keys, or sparse vectors.
 
-The fact that int-maps are mergeable means that they can be used very effectively with Clojure's [reducer](http://clojure.com/blog/2012/05/08/reducers-a-library-and-model-for-collection-processing.html) mechanism.  For instance, consider populating a data structure.  Typically, we'd use `into`:
+The fact that int-maps are mergeable means that they can be used very effectively with Clojure's [reducer](https://clojure.org/news/2012/05/08/reducers) mechanism.  For instance, consider populating a data structure.  Typically, we'd use `into`:
 
 ```clj
 > (into {} [[1 2] [3 4]])
@@ -94,17 +94,14 @@ In this case, the dense int-set is much less efficient than the standard set, wh
 ## Developer information
 
 data.int-map is being developed as a Clojure Contrib project, see the
-[What is Clojure Contrib](http://dev.clojure.org/pages/viewpage.action?pageId=5767464)
+[What is Clojure Contrib](https://clojure.org/dev/contrib_libs)
 page for details. Patches will only be accepted from developers who
 have signed the Clojure Contributor Agreement.
 
 * [GitHub project](https://github.com/clojure/data.int-map)
-
-* [Bug Tracker](http://dev.clojure.org/jira/browse/DIMAP)
-
-* [Continuous Integration](http://build.clojure.org/job/data.int-map/)
-
-* [Compatibility Test Matrix](http://build.clojure.org/job/data.int-map-test-matrix/)
+* [Bug Tracker](https://clojure.atlassian.net/browse/DIMAP)
+* [Continuous Integration](https://build.clojure.org/job/data.int-map/)
+* [Compatibility Test Matrix](https://build.clojure.org/job/data.int-map-test-matrix/)
 
 ## License
 
