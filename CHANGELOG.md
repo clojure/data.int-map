@@ -1,6 +1,8 @@
 Changelog
 ===========
 
+* next
+  * Removed allocation of unused ArrayList
 * 1.0.0 on Aug 19, 2020
   * Fix DIMAP-15 - PersistentIntMap equals/equiv gives wrong result
   * Fix DIMAP-14 - Support element lookup on transient sets

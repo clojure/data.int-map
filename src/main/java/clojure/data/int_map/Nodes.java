@@ -373,7 +373,6 @@ public class Nodes {
 
         INode[] children = new INode[16];
         INode[] branchChildren = branch.children;
-        List<INode> above = new ArrayList<INode>();
         int offset = this.offset;
 
         for (int i = 0; i < 16; i++) {
