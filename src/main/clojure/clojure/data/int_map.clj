@@ -16,7 +16,6 @@
     [clojure.core.reducers :as r])
   (:import
     [java.util
-     BitSet
      Map
      Map$Entry]
     [clojure.data.int_map
@@ -24,7 +23,7 @@
      IntSet
      Nodes$Empty
      INode$IterationType]
-    [clojure.lang Util APersistentMap]))
+    [clojure.lang Util]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* true)

@@ -9,7 +9,6 @@
 package clojure.data.int_map;
 
 import java.util.Iterator;
-import java.util.List;
 import clojure.lang.IFn;
 
 public interface INode {

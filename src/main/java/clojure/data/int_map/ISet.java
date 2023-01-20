@@ -9,7 +9,6 @@
 package clojure.data.int_map;
 
 import java.util.BitSet;
-import java.util.Collection;
 import java.util.Iterator;
 
 public interface ISet {

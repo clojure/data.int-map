@@ -2,26 +2,14 @@
   (:use
     [clojure.test])
   (:require
-    [clojure.java.shell :as sh]
     #_[rhizome.viz :as v]
     [clojure.set :as set]
     [clojure.core.reducers :as r]
     [clojure.data.int-map :as i]
     [collection-check :as check]
-    [clojure.string :as str]
     [clojure.test.check.generators :as gen]
     [clojure.test.check.properties :as prop]
-    [clojure.test.check.clojure-test :as ct :refer (defspec)])
-  (:import
-    [clojure.data.int_map
-     INode
-     Nodes
-     Nodes$Leaf
-     Nodes$Empty
-     Nodes$BinaryBranch
-     Nodes$Branch]
-    [java.util
-     BitSet]))
+    [clojure.test.check.clojure-test :as ct :refer (defspec)]))
 
 (set! *warn-on-reflection* false)
 
@@ -106,6 +94,15 @@
 (deftest test-contiguous-keys
   (is (== 1e7 (count (persistent! (reduce #(assoc! %1 %2 nil) (transient (i/int-map)) (range 1e7)))))))
 ;;;
+
+#_(import
+   [clojure.data.int_map
+    INode
+    Nodes
+    Nodes$Leaf
+    Nodes$Empty
+    Nodes$BinaryBranch
+    Nodes$Branch])
 
 #_(defn view-tree [m]
   (let [r (.root m)]
