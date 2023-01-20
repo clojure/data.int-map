@@ -87,7 +87,7 @@
 
   (equiv [this x]
     (cond
-      (not (map? x))
+      (not (instance? java.util.Map x))
       false
 
       (and (instance? clojure.lang.IPersistentMap x)
@@ -180,11 +180,7 @@
       (identical? this x)
       true
 
-      (not (map? x))
-      false
-
-      (and (instance? clojure.lang.IPersistentMap x)
-           (not (instance? clojure.lang.MapEquivalence x)))
+      (not (instance? java.util.Map x))
       false
 
       (not= (count this) (.size ^Map x))
@@ -508,7 +504,7 @@
   clojure.lang.IPersistentSet
   (equiv [this x]
     (and
-      (set? x)
+      (instance? java.util.Set x)
       (= (count this) (count x))
       (every?
         #(contains? x %)

@@ -21,6 +21,49 @@
 
 ;;;
 
+(defn is-same-collection [a b]
+  (let [msg (format "(class a)=%s (class b)=%s a=%s b=%s"
+                    (.getName (class a)) (.getName (class b)) a b)]
+    (is (= (count a) (count b) (.size a) (.size b)) msg)
+    (is (= a b) msg)
+    (is (= b a) msg)
+    (is (.equals ^Object a b) msg)
+    (is (.equals ^Object b a) msg)
+    (is (= (.hashCode ^Object a) (.hashCode ^Object b)) msg)))
+
+(defn is-same-clj-collection [a b]
+  (let [msg (format "(class a)=%s (class b)=%s a=%s b=%s"
+                    (.getName (class a)) (.getName (class b)) a b)]
+    (is-same-collection a b)
+    (is (= (hash a) (hash b)) msg)))
+
+(deftest set-collection-tests
+  (let [clj-sets [(set [11 13 17])
+                   (hash-set 11 13 17)
+                   (sorted-set 11 13 17)
+                   (sorted-set-by < 11 13 17)
+                   (i/int-set [11 13 17])
+                   (i/dense-int-set [11 13 17])]
+        non-clj-sets [(java.util.HashSet. [11 13 17])]]
+    (doseq [c1 (concat clj-sets non-clj-sets),
+            c2 (concat clj-sets non-clj-sets)]
+      (is-same-collection c1 c2))
+    (doseq [c1 clj-sets, c2 clj-sets]
+      (is-same-clj-collection c1 c2))))
+
+(deftest map-collection-tests
+  (let [clj-maps [(hash-map 11 13, 17 19)
+                   (array-map 11 13, 17 19)
+                   (sorted-map 11 13, 17 19)
+                   (sorted-map-by < 11 13, 17 19)
+                   (i/int-map 11 13, 17 19)]
+        non-clj-maps [(java.util.HashMap. {11 13, 17 19})]]
+    (doseq [c1 (concat clj-maps non-clj-maps),
+            c2 (concat clj-maps non-clj-maps)]
+      (is-same-collection c1 c2))
+    (doseq [c1 clj-maps, c2 clj-maps]
+      (is-same-clj-collection c1 c2))))
+
 (def map-int
   (->> (gen/tuple gen/int (gen/choose 0 63))
     (gen/fmap (fn [[x y]] (bit-shift-left x y)))))
