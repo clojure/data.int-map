@@ -218,7 +218,9 @@
   (valAt [this k]
     (.valAt this k nil))
   (valAt [this k default]
-    (.get root (long k) default))
+    (try
+      (.get root (long k) default)
+      (catch ClassCastException _ default)))
 
   clojure.lang.Associative
   (containsKey [this k]
@@ -348,7 +350,9 @@
   (valAt [this k]
     (.valAt this k nil))
   (valAt [this k default]
-    (.get root k default))
+    (try
+      (.get root k default)
+      (catch ClassCastException _ default)))
 
   clojure.lang.Associative
   (containsKey [this k]
@@ -519,7 +523,11 @@
     (cond-> (PersistentIntSet. (IntSet. (.leafSize int-set)) 0 nil)
       meta (with-meta meta)))
   (contains [_ n]
-    (.contains int-set n))
+    (try
+      (.contains int-set n)
+      (catch ClassCastException _ false)))
+  (get [this n]
+    (when (.contains this n) n))
   (disjoin [this n]
     (let [epoch' (inc epoch)
           int-set' (.remove int-set epoch' n)]

@@ -2,6 +2,8 @@ Changelog
 ===========
 
 * next
+  * Made int maps and sets work correctly on contains? and get for non-int keys
+* 1.1.0 on Jan 20, 2023
   * DIMAP-17 - use singletons for empty int maps and sets
   * DIMAP-16 - fix equals and equiv don't compare equals with Java maps/sets
   * DIMAP-18 - fix empty doesn't preserve meta
