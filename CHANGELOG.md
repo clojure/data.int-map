@@ -2,13 +2,14 @@ Changelog
 ===========
 
 * next
-  * Fix DIMAP-16 - equals and equiv don't compare equals with Java maps/sets
-  * Fix DIMAP-18 - empty doesn't preserve meta
-  * Fix DIMAP-7 - Minor typos in README and docstring
-  * Fix unused ArrayList allocation
+  * DIMAP-17 - use singletons for empty int maps and sets
+  * DIMAP-16 - fix equals and equiv don't compare equals with Java maps/sets
+  * DIMAP-18 - fix empty doesn't preserve meta
+  * DIMAP-7 - fix minor typos in README and docstring
+  * Remove unused ArrayList allocation
 * 1.0.0 on Aug 19, 2020
-  * Fix DIMAP-15 - PersistentIntMap equals/equiv gives wrong result
-  * Fix DIMAP-14 - Support element lookup on transient sets
+  * DIMAP-15 - fix PersistentIntMap equals/equiv gives wrong result
+  * DIMAP-14 - support element lookup on transient sets
 * 0.2.4 on Sep 28, 2016
 * 0.2.3 on Jul 10, 2016
   * Fix iteration over empty nodes
