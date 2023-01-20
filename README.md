@@ -98,6 +98,7 @@ data.int-map is being developed as a Clojure Contrib project, see the
 page for details. Patches will only be accepted from developers who
 have signed the Clojure Contributor Agreement.
 
+* [API docs](https://clojure.github.io/data.int-map/)
 * [GitHub project](https://github.com/clojure/data.int-map)
 * [Bug Tracker](https://clojure.atlassian.net/browse/DIMAP)
 * [Continuous Integration](https://build.clojure.org/job/data.int-map/)
