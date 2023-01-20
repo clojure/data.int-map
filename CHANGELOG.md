@@ -2,8 +2,9 @@ Changelog
 ===========
 
 * next
-  * Fix unused ArrayList allocation
+  * Fix DIMAP-18 - empty doesn't preserve meta
   * Fix DIMAP-7 - Minor typos in README and docstring
+  * Fix unused ArrayList allocation
 * 1.0.0 on Aug 19, 2020
   * Fix DIMAP-15 - PersistentIntMap equals/equiv gives wrong result
   * Fix DIMAP-14 - Support element lookup on transient sets

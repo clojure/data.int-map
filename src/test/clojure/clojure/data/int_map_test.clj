@@ -13,6 +13,12 @@
 
 (set! *warn-on-reflection* false)
 
+(deftest empty-retains-meta
+  (let [mm {:hi :there}]
+    (is (= mm (meta (empty (with-meta (i/int-map 1 2) mm)))))
+    (is (= mm (meta (empty (with-meta (i/int-set [1 2]) mm)))))
+    (is (= mm (meta (empty (with-meta (i/dense-int-set [1 2]) mm)))))))
+
 ;;;
 
 (def map-int

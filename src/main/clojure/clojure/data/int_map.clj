@@ -241,7 +241,8 @@
         meta)))
 
   (empty [this]
-    (PersistentIntMap. Nodes$Empty/EMPTY 0 nil))
+    (cond-> (PersistentIntMap. Nodes$Empty/EMPTY 0 nil)
+      meta (with-meta meta)))
 
   clojure.lang.IEditableCollection
   (asTransient [this]
@@ -515,7 +516,8 @@
   (count [_]
     (.count int-set))
   (empty [_]
-    (PersistentIntSet. (IntSet. (.leafSize int-set)) 0 nil))
+    (cond-> (PersistentIntSet. (IntSet. (.leafSize int-set)) 0 nil)
+      meta (with-meta meta)))
   (contains [_ n]
     (.contains int-set n))
   (disjoin [this n]
