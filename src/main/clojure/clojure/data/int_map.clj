@@ -393,7 +393,8 @@
 ;;;
 
 (defn int-map
-  "Creates an integer map that can only have non-negative integers as keys."
+  "Given alternating keys and values, creates an integer map that can only
+  have non-negative integers as keys."
   ([]
      (PersistentIntMap. Nodes$Empty/EMPTY 0 nil))
   ([a b]
@@ -576,16 +577,18 @@
 ;;;
 
 (defn int-set
-  "Creates an immutable set which can only store integral values.  This should be used unless elements are densely
-   clustered (each element has multiple elements within +/- 1000)."
+  "Given a collection, creates an immutable set which can only store integral values.
+  This should be used unless elements are densely clustered (each element has multiple
+  elements within +/- 1000)."
   ([]
      (PersistentIntSet. (IntSet. 128) 0 nil))
   ([s]
      (into (int-set) s)))
 
 (defn dense-int-set
-  "Creates an immutable set which can only store integral values.  This should be used only if elements are densely
-   clustered (each element has multiple elements within +/- 1000)."
+  "Given a collection, creates an immutable set which can only store integral values.
+  This should be used only if elements are densely clustered (each element has multiple
+  elements within +/- 1000)."
   ([]
      (PersistentIntSet. (IntSet. 4096) 0 nil))
   ([s]
