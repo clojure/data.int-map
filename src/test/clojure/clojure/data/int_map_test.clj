@@ -303,3 +303,10 @@
 
 (defspec prop-dense-all-set-algebra-operators-equivalent 1e5
   (all-set-algebra-operators-equivalent? i/dense-int-set))
+
+(deftest int-map-empty-singleton
+  (is (identical? (i/int-map) (i/int-map)) "(int-map) should always return the same instance"))
+(deftest int-set-empty-singleton
+  (is (identical? (i/int-set) (i/int-set)) "(int-set) should always return the same instance"))
+(deftest dense-int-set-empty-singleton
+  (is (identical? (i/dense-int-set) (i/dense-int-set)) "(dense-int-set) should always return the same instance"))

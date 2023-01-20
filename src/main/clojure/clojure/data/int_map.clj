@@ -45,7 +45,8 @@
     then
     else))
 
-(declare ->transient-int-map)
+(declare ->transient-int-map
+         ^:private EMPTY-INT-MAP)
 
 (deftype PersistentIntMap
   [^INode root
@@ -292,6 +293,8 @@
   (invoke [this k default]
     (.valAt this k default)))
 
+(def ^:private ^PersistentIntMap EMPTY-INT-MAP (PersistentIntMap. Nodes$Empty/EMPTY 0 nil))
+
 (deftype TransientIntMap
   [^INode root
    ^long epoch
@@ -396,16 +399,16 @@
   "Given alternating keys and values, creates an integer map that can only
   have non-negative integers as keys."
   ([]
-     (PersistentIntMap. Nodes$Empty/EMPTY 0 nil))
+     EMPTY-INT-MAP)
   ([a b]
-     (assoc (int-map) a b))
+     (assoc EMPTY-INT-MAP a b))
   ([a b & rest]
-     (apply assoc (int-map) a b rest)))
+     (apply assoc EMPTY-INT-MAP a b rest)))
 
 (defn merge-with
   "Merges together two int-maps, using `f` to resolve value conflicts."
   ([f]
-     (int-map))
+     EMPTY-INT-MAP)
   ([f a b]
      (let [a' (if (instance? TransientIntMap a)
                 (persistent! a)
@@ -420,7 +423,7 @@
 (defn merge
   "Merges together two int-maps, giving precedence to values from the right-most map."
   ([]
-     (int-map))
+     EMPTY-INT-MAP)
   ([a b]
      (merge-with (fn [_ b] b) a b))
   ([a b & rest]
@@ -576,23 +579,26 @@
 
 ;;;
 
+(def ^:private ^PersistentIntSet EMPTY-INT-SET (PersistentIntSet. (IntSet. 128) 0 nil))
+(def ^:private ^PersistentIntSet EMPTY-DENSE-INT-SET (PersistentIntSet. (IntSet. 4096) 0 nil))
+
 (defn int-set
   "Given a collection, creates an immutable set which can only store integral values.
   This should be used unless elements are densely clustered (each element has multiple
   elements within +/- 1000)."
   ([]
-     (PersistentIntSet. (IntSet. 128) 0 nil))
+     EMPTY-INT-SET)
   ([s]
-     (into (int-set) s)))
+     (into EMPTY-INT-SET s)))
 
 (defn dense-int-set
   "Given a collection, creates an immutable set which can only store integral values.
   This should be used only if elements are densely clustered (each element has multiple
   elements within +/- 1000)."
   ([]
-     (PersistentIntSet. (IntSet. 4096) 0 nil))
+     EMPTY-DENSE-INT-SET)
   ([s]
-     (into (dense-int-set) s)))
+     (into EMPTY-DENSE-INT-SET s)))
 
 (defn union
   "Returns the union of two bitsets."
