@@ -3,3 +3,5 @@ target
 .lein*
 .idea*
 *.iml
+.clj-kondo/
+.lsp/
