@@ -401,7 +401,7 @@
 
 (defn int-map
   "Given alternating keys and values, creates an integer map that can only
-  have non-negative integers as keys."
+  have integers as keys."
   ([]
      EMPTY-INT-MAP)
   ([a b]
