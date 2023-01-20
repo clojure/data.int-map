@@ -2,6 +2,7 @@ Changelog
 ===========
 
 * next
+  * Fix DIMAP-16 - equals and equiv don't compare equals with Java maps/sets
   * Fix DIMAP-18 - empty doesn't preserve meta
   * Fix DIMAP-7 - Minor typos in README and docstring
   * Fix unused ArrayList allocation
