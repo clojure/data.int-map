@@ -7,7 +7,9 @@
     [criterium.core :as c])
   (:import
     [java.util
-     BitSet]))
+     BitSet]
+    [clojure.data.int_map
+     PersistentIntMap]))
 
 (def n (long 1e6))
 
@@ -122,3 +124,17 @@
   (let [b (BitSet. 1e3)]
     (c/quick-bench
       (.get b 123))))
+
+(deftest ^:benchmark benchmark-int-map-range
+  (println "\ncheck int-map range")
+  (let [^PersistentIntMap im (->> (range 0 50000)
+                                  (map (fn [x] [x x]))
+                                  (into (i/int-map)))]
+    (c/quick-bench
+      (do
+        (.range im -20000 20000)
+        (.range im 20000 20100)
+        (.range im -10000 -100)
+        (.range im 20000 100000)
+        (.range im -1000000 100000)))
+    ))

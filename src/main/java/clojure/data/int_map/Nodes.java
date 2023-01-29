@@ -253,33 +253,82 @@ public class Nodes {
       return copy;
     }
 
-    private static boolean overlap(long min0, long max0, long min1, long max1) {
-      return (max1 - min0) >= 0 && (max0 - min1) >= 0;
+    // returns 0 for no overlap, 1 if there's some overlap, 2 if the left completely covers the right
+    private static int overlap(long min0, long max0, long min1, long max1) {
+      if (min0 <= min1 && max1 <= max0) {
+        return 2;
+      }
+      if (min0 <= max1 && min1 <= max0) {
+        return 1;
+      }
+      return 0;
     }
 
     public INode range(long min, long max) {
-      if (offset < 60) {
-        long nodeMask = ((1L << (offset+4)) - 1);
-        long nodeMin = prefix & ~nodeMask;
-        long nodeMax = prefix | nodeMask;
-        if (!overlap(min, max, nodeMin, nodeMax)) {
+      long nodeMask = offset < 60 ? ((1L << (offset + 4)) - 1) : ~(1L<<63);
+      long nodeMin = prefix & ~nodeMask;
+      long nodeMax = prefix | nodeMask;
+      switch (overlap(min, max, nodeMin, nodeMax)) {
+        case 2:
+          return this;
+        case 0:
           return null;
-        }
+        default:
       }
 
-      INode[] children = new INode[16];
-      long lowerBits = (1L << offset) - 1;
-      for (long i = 0; i < 16; i++) {
-        INode c = this.children[(int)i];
+      INode[] children = null;
+      // true if already known that at least one child of this node should be removed in the result
+      boolean atLeastOneDropped = false;
+
+      int minI = min <= nodeMin ? -1 : indexOf(Math.min(nodeMax, min));
+      int maxI = max >= nodeMax ? 16 : indexOf(Math.max(nodeMin, max));
+
+      INode onlyChild = null;
+      int numChildren = 0;
+
+      for (int i = 0; i < 16; i++) {
+        INode c = this.children[i];
         if (c != null) {
-          long childMin = ((prefix & ~mask) | (i << offset)) & ~lowerBits;
-          long childMax = childMin | lowerBits;
-          if (overlap(min, max, childMin, childMax)) {
-            children[(int)i] = c.range(min, max);
+
+          // if i is outside [minI, maxI], it must have no intersection with the range
+          // if it is strictly inside (minI, maxI) exclusive, it must be fully in the range
+          // otherwise it is minI or maxI, so it may be partially in the range so we have to recurse
+          INode child =
+                  (i < minI || maxI < i) ? null :
+                          (minI < i && i < maxI) ? c :
+                          c.range(min, max);
+
+          if (children != null) {
+            children[i] = child;
+          } else if (child == null) {
+            if (numChildren != 0) {
+              // dropping `child`, but the children at previous indices are all identical to this.children, so clone
+              // indices 0..(i-1)
+              children = this.children.clone();
+              children[i] = null;
+            } else {
+              atLeastOneDropped = true;
+            }
+          } else if (child != c) {
+            children = numChildren != 0 ? this.children.clone() : new INode[16];
+            children[i] = child;
+            // we could set atLeastOneChild = true here, but it will never be used since now children != null
+          } else if (atLeastOneDropped) {
+            children = new INode[16];
+            children[i] = child;
+            // we could set atLeastOneChild = true here, but it will never be used since now children != null
+          }
+          if (child != null) {
+            numChildren += 1;
+            onlyChild = child;
           }
         }
       }
-      return new Branch(prefix, offset, epoch, children);
+
+      return numChildren == 0 ? null :
+              numChildren == 1 ? onlyChild :
+              children == null ? this :
+              new Branch(prefix, offset, epoch, children);
     }
 
     public Iterator iterator(final IterationType type, final boolean reverse) {

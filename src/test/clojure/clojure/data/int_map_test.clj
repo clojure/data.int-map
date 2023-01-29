@@ -310,3 +310,11 @@
   (is (identical? (i/int-set) (i/int-set)) "(int-set) should always return the same instance"))
 (deftest dense-int-set-empty-singleton
   (is (identical? (i/dense-int-set) (i/dense-int-set)) "(dense-int-set) should always return the same instance"))
+
+(defspec int-map-range 1e5
+  (prop/for-all [im int-map-generator
+                 min gen/int
+                 max gen/int]
+    (is (= (.range im min max) (->> im
+                                   (filter (fn [[k _]] (<= min k max)))
+                                   (into {}))))))
