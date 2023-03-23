@@ -1,7 +1,7 @@
 Changelog
 ===========
 
-* next on Mar 23, 2023
+* 1.2.1 on Mar 23, 2023
   * DIMAP-22 - Performance improvement to int-map range function
 * 1.2.0 on Jan 20, 2023
   * Made int maps and sets work correctly on contains? and get for non-int keys
