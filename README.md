@@ -101,8 +101,7 @@ have signed the Clojure Contributor Agreement.
 * [API docs](https://clojure.github.io/data.int-map/)
 * [GitHub project](https://github.com/clojure/data.int-map)
 * [Bug Tracker](https://clojure.atlassian.net/browse/DIMAP)
-* [Continuous Integration](https://build.clojure.org/job/data.int-map/)
-* [Compatibility Test Matrix](https://build.clojure.org/job/data.int-map-test-matrix/)
+* [Continuous Integration](https://github.com/clojure/data.int-map/actions/workflows/test.yml)
 
 ## License
 
