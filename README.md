@@ -1,10 +1,10 @@
-[CLI/`deps.edn`](https://clojure.org/reference/deps_and_cli) dependency information:
+[CLI/`deps.edn`](https://clojure.org/reference/deps_edn) dependency information:
 ```clojure
-org.clojure/data.int-map {:mvn/version "1.2.1"}
+org.clojure/data.int-map {:mvn/version "1.3.0"}
 ```
 [Leiningen](https://github.com/technomancy/leiningen):
 ```clj
-[org.clojure/data.int-map "1.2.1"]
+[org.clojure/data.int-map "1.3.0"]
 ```
 
 This library has special implementations of immutable maps and sets, optimized for integer keys.  They are both faster in both updates and lookups than normal Clojure data structures, but also more memory efficient, sometimes significantly.
@@ -105,6 +105,6 @@ have signed the Clojure Contributor Agreement.
 
 ## License
 
-Copyright © 2015-2023 Zach Tellman, Rich Hickey and contributors
+Copyright © Zach Tellman, Rich Hickey and contributors
 
 Distributed under the Eclipse Public License, the same as Clojure.
