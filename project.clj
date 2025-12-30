@@ -6,7 +6,7 @@
   :source-paths ["src/main/clojure"]
   :test-paths ["src/test/clojure"]
   :dependencies []
-  :profiles {:dev {:dependencies [[org.clojure/clojure "1.9.0"]
+  :profiles {:dev {:dependencies [[org.clojure/clojure "1.11.4"]
                                   [collection-check "0.1.6"]
                                   [criterium "0.4.6"]
                                   [rhizome "0.2.6"]]}}

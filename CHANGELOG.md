@@ -1,6 +1,10 @@
 Changelog
 ===========
 
+* 1.3.1 on Dec 30, 2025
+  * Update parent pom
+* 1.3.0 on Feb 19, 2024
+  * Update parent pom and deps
 * 1.2.1 on Mar 23, 2023
   * DIMAP-22 - Performance improvement to int-map range function
 * 1.2.0 on Jan 20, 2023
